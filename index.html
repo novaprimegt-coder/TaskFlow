@@ -8,15 +8,55 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>TaskFlow</title>
-<style>*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#050914;color:#fff;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.boot{min-height:100dvh;display:grid;place-items:center;padding:24px}.card{width:min(420px,100%);text-align:center}.logo{font-size:34px;font-weight:900;background:linear-gradient(90deg,#42e1d1,#55d6c8,#ff8a2b);-webkit-background-clip:text;background-clip:text;color:transparent}.sub{margin-top:8px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#8191ad;font-weight:800}.msg{margin-top:18px;color:#a7b2c5;font-size:14px}.bar{height:5px;border-radius:999px;background:#111a2b;overflow:hidden;margin:22px auto 0;max-width:300px}.bar i{display:block;height:100%;width:38%;background:linear-gradient(90deg,#40dfd0,#ff8a2b);animation:m .9s ease-in-out infinite alternate}@keyframes m{from{transform:translateX(-15%)}to{transform:translateX(180%)}}.err{margin-top:14px;color:#ff8b9a;font-size:11px;display:none;line-height:1.45}.retry{display:none;margin:16px auto 0;border:1px solid rgba(75,226,212,.3);border-radius:12px;padding:10px 16px;background:#12323a;color:#55e1d3;font-weight:800}</style>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:#050914;color:#fff;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.boot{min-height:100dvh;display:grid;place-items:center;padding:24px;overflow:hidden;background:
+radial-gradient(circle at 50% 28%,rgba(66,225,209,.10),transparent 34%),
+linear-gradient(180deg,#050914 0%,#07101e 58%,#050914 100%)}
+.card{width:min(440px,100%);text-align:center}
+.logo{font-size:44px;line-height:1;font-weight:950;letter-spacing:-.04em;background:linear-gradient(90deg,#42e1d1,#67e5d6,#ff9a43);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:0 0 34px rgba(66,225,209,.10)}
+.sub{margin-top:10px;font-size:10px;letter-spacing:.17em;text-transform:uppercase;color:#8291aa;font-weight:850}
+.msg{margin-top:20px;color:#aab5c8;font-size:13px}
+.bar{height:5px;border-radius:999px;background:#10192b;overflow:hidden;margin:22px auto 0;max-width:310px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.035)}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#40dfd0,#62e4b0,#ff9a43);animation:tfBoot5 5s linear forwards;border-radius:999px}
+@keyframes tfBoot5{from{width:0}to{width:100%}}
+.nv-watermark{margin:30px auto 0;display:grid;justify-items:center;gap:8px;opacity:.44;max-width:280px}
+.nv-watermark img{display:block;width:min(220px,68vw);height:auto;border-radius:10px;filter:saturate(.82) brightness(.86);opacity:.48}
+.nv-watermark span{font-size:9px;letter-spacing:.08em;color:#8290a8;text-transform:uppercase;font-weight:750}
+.err{margin-top:14px;color:#ff8b9a;font-size:11px;display:none;line-height:1.45}
+.retry{display:none;margin:16px auto 0;border:1px solid rgba(75,226,212,.3);border-radius:12px;padding:10px 16px;background:#12323a;color:#55e1d3;font-weight:800}
+</style>
 </head>
 <body>
-<div class="boot"><div class="card"><div class="logo">TaskFlow</div><div class="sub">V126.3 · Ajuste visual 50/30/20</div><div class="msg" id="m">Preparando el sistema…</div><div class="bar" id="b"><i></i></div><div class="err" id="e"></div><button class="retry" id="r" type="button">Reintentar</button></div></div>
+<div class="boot">
+  <div class="card">
+    <div class="logo">TaskFlow</div>
+    <div class="sub">Organiza · Avanza · Cumple</div>
+    <div class="msg" id="m">Preparando tu sistema…</div>
+    <div class="bar" id="b"><i></i></div>
+    <div class="nv-watermark" aria-label="Creado y actualizado por NovaVision GT">
+      <img src="./novavision-watermark.svg" alt="NovaVision GT">
+      <span>Creado y actualizado por NovaVision GT</span>
+    </div>
+    <div class="err" id="e"></div>
+    <button class="retry" id="r" type="button">Reintentar</button>
+  </div>
+</div>
 <script>
 (()=>{
 'use strict';
 const msg=document.getElementById('m'),err=document.getElementById('e'),bar=document.getElementById('b'),retry=document.getElementById('r');
+const MIN_BOOT_MS=5000;
 let timer=null;
+function wait(ms){return new Promise(resolve=>setTimeout(resolve,ms))}
+function resetBar(){
+  const i=bar&&bar.querySelector('i');
+  if(!i)return;
+  i.style.animation='none';
+  void i.offsetWidth;
+  i.style.animation='tfBoot5 5s linear forwards';
+}
 function fail(ex){
   if(timer){clearTimeout(timer);timer=null;}
   console.error('TaskFlow boot:',ex);
@@ -27,11 +67,12 @@ function fail(ex){
   retry.style.display='inline-flex';
 }
 async function start(){
-  err.style.display='none';retry.style.display='none';bar.style.display='block';msg.textContent='Cargando TaskFlow…';
+  const started=performance.now();
+  err.style.display='none';retry.style.display='none';bar.style.display='block';msg.textContent='Cargando TaskFlow…';resetBar();
   const ctrl=new AbortController();
   timer=setTimeout(()=>ctrl.abort(),15000);
   try{
-    const res=await fetch('./taskflow-loader-v102.html?v=1263-20260926',{cache:'default',signal:ctrl.signal});
+    const res=await fetch('./taskflow-loader-v102.html?v=1264-20260926',{cache:'default',signal:ctrl.signal});
     if(!res.ok)throw new Error('No se pudo cargar la base de TaskFlow ('+res.status+')');
     let html=await res.text();
     if(timer){clearTimeout(timer);timer=null;}
@@ -39,11 +80,13 @@ async function start(){
     const headFix="if(html.includes('</head>'))html=html.replace('</head>',injectedStyle+cleanupScript+'<script src=\"./taskflow-touch-v105.js?v=1240-20260926\"><\\/script>'+scrollBridgeScript+iconPortalGuard+'<link rel=\"stylesheet\" href=\"./taskflow-503020.css?v=1110-20260909\"><link rel=\"stylesheet\" href=\"./taskflow-profile-v108.css?v=1110-20260909\"><style id=\"tf-v1192-main-spacing\">.wrap{padding-bottom:max(20px,env(safe-area-inset-bottom))!important}.v48-discipline-center{margin-bottom:0!important}</style>'+'</head>');";
     const payloadCacheNeedle="fetch(base+name,{cache:'no-store',mode:'cors'})";
     const payloadCacheFix="fetch(base+name,{cache:'force-cache',mode:'cors'})";
-    const perfGuard='<script id="tf-v123-performance-guard">(function(){if(window.__tfV123PerformanceGuard)return;window.__tfV123PerformanceGuard=true;var Native=window.MutationObserver;if(!Native)return;function Quiet(cb){this.cb=cb}Quiet.prototype.observe=function(){};Quiet.prototype.disconnect=function(){};Quiet.prototype.takeRecords=function(){return[]};window.MutationObserver=function(cb){var src=\"\";try{src=Function.prototype.toString.call(cb)}catch(_){};var noisy=(src.indexOf(\"addedNodes\")!==-1&&(src.indexOf(\"schedule()\")!==-1||src.indexOf(\"queueApply()\")!==-1))||src.indexOf(\"requestAnimationFrame(apply)\")!==-1;return noisy?new Quiet(cb):new Native(cb)};window.MutationObserver.prototype=Native.prototype;document.addEventListener(\"DOMContentLoaded\",function(){setTimeout(function(){window.MutationObserver=Native},0)},{once:true});})();<\\/script>';
+    const perfGuard='<script id="tf-v123-performance-guard">(function(){if(window.__tfV123PerformanceGuard)return;window.__tfV123PerformanceGuard=true;var Native=window.MutationObserver;if(!Native)return;function Quiet(cb){this.cb=cb}Quiet.prototype.observe=function(){};Quiet.prototype.disconnect=function(){};Quiet.prototype.takeRecords=function(){return[]};window.MutationObserver=function(cb){var src="";try{src=Function.prototype.toString.call(cb)}catch(_){};var noisy=(src.indexOf("addedNodes")!==-1&&(src.indexOf("schedule()")!==-1||src.indexOf("queueApply()")!==-1))||src.indexOf("requestAnimationFrame(apply)")!==-1;return noisy?new Quiet(cb):new Native(cb)};window.MutationObserver.prototype=Native.prototype;document.addEventListener("DOMContentLoaded",function(){setTimeout(function(){window.MutationObserver=Native},0)},{once:true});})();<\\/script>';
     const writeNeedle='document.open();document.write(html);document.close();';
-    const writeFix=`if(html.includes('</body>'))html=html.replace('</body>','<script src="./taskflow-503020.js?v=1110-20260909"><\\/script><script src="./taskflow-503020-inputformat.js?v=1110-20260909"><\\/script><script src="./taskflow-firebase-v108.js?v=1120-20260909"><\\/script><script src="./taskflow-firestore-sync-v109.js?v=1110-20260909"><\\/script>${perfGuard}<script src="./taskflow-v117.js?v=1230-20260926"><\\/script><script src="./taskflow-v119.js?v=1230-20260926"><\\/script><script src="./taskflow-v1193-spacing.js?v=1193-20260921"><\\/script><script src="./taskflow-v120.js?v=1200-20260922"><\\/script><script src="./taskflow-v121-resetfix.js?v=1210-20260922"><\\/script><script src="./taskflow-v122-habit-visual.js?v=1230-20260926"><\\/script><script src="./taskflow-v125-routine-layout.js?v=1250-20260926"><\\/script><script src="./taskflow-v126-routine-tight.js?v=1263-20260926"><\\/script></body>');document.open();document.write(html);document.close();`;
+    const writeFix=`if(html.includes('</body>'))html=html.replace('</body>','<script src="./taskflow-503020.js?v=1110-20260909"><\\/script><script src="./taskflow-503020-inputformat.js?v=1110-20260909"><\\/script><script src="./taskflow-firebase-v108.js?v=1120-20260909"><\\/script><script src="./taskflow-firestore-sync-v109.js?v=1110-20260909"><\\/script>${perfGuard}<script src="./taskflow-v117.js?v=1230-20260926"><\\/script><script src="./taskflow-v119.js?v=1230-20260926"><\\/script><script src="./taskflow-v1193-spacing.js?v=1193-20260921"><\\/script><script src="./taskflow-v120.js?v=1200-20260922"><\\/script><script src="./taskflow-v121-resetfix.js?v=1210-20260922"><\\/script><script src="./taskflow-v122-habit-visual.js?v=1230-20260926"><\\/script><script src="./taskflow-v125-routine-layout.js?v=1250-20260926"><\\/script><script src="./taskflow-v126-routine-tight.js?v=1264-20260926"><\\/script></body>');document.open();document.write(html);document.close();`;
     if(!html.includes(headNeedle)||!html.includes(writeNeedle)||!html.includes(payloadCacheNeedle))throw new Error('La base publicada no coincide con la versión esperada.');
-    html=html.replace('V102 · iconos y desplazamiento estable','V126.3 · Ajuste visual 50/30/20').replace(payloadCacheNeedle,payloadCacheFix).replace(headNeedle,headFix).replace(writeNeedle,writeFix);
+    html=html.replace('V102 · iconos y desplazamiento estable','V126.4 · Carga y aislamiento visual').replace(payloadCacheNeedle,payloadCacheFix).replace(headNeedle,headFix).replace(writeNeedle,writeFix);
+    const remaining=Math.max(0,MIN_BOOT_MS-(performance.now()-started));
+    if(remaining)await wait(remaining);
     msg.textContent='Iniciando TaskFlow…';
     document.open();document.write(html);document.close();
   }catch(ex){fail(ex);}
