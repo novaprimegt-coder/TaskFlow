@@ -57,7 +57,7 @@ function installStyle(){
  min-height:0!important;
 }
 
-/* 50/30/20: desplazamiento completo sin espacio final artificial. */
+/* 50/30/20: desplazamiento completo, sin espacio final artificial y sin mostrar el contenido del fondo. */
 #tf503020Overlay.tf503020-overlay.open{
  top:0!important;
  bottom:${AD_SAFE}px!important;
@@ -71,6 +71,8 @@ function installStyle(){
  padding-bottom:0!important;
  scroll-padding-bottom:0!important;
  box-sizing:border-box!important;
+ background:#050914!important;
+ backdrop-filter:none!important;
 }
 #tf503020Overlay .tf503020-shell{
  height:auto!important;
@@ -143,6 +145,7 @@ function compactAll(){
   fifty.style.setProperty('max-height','none','important');
   fifty.style.setProperty('padding-bottom','0','important');
   fifty.style.setProperty('scroll-padding-bottom','0','important');
+  fifty.style.setProperty('background','#050914','important');
  }
 }
 
