@@ -57,12 +57,17 @@ function installStyle(){
  min-height:0!important;
 }
 
-/* 50/30/20: desplazamiento completo, sin espacio final artificial y sin mostrar el contenido del fondo. */
+/* 50/30/20: ocupa toda la pantalla para que nunca se vea el contenido de TaskFlow por debajo. */
 #tf503020Overlay.tf503020-overlay.open{
+ inset:0!important;
  top:0!important;
- bottom:${AD_SAFE}px!important;
- height:auto!important;
- max-height:none!important;
+ right:0!important;
+ bottom:0!important;
+ left:0!important;
+ width:100vw!important;
+ min-height:100dvh!important;
+ height:100dvh!important;
+ max-height:100dvh!important;
  overflow-y:auto!important;
  overflow-x:hidden!important;
  -webkit-overflow-scrolling:touch!important;
@@ -73,6 +78,7 @@ function installStyle(){
  box-sizing:border-box!important;
  background:#050914!important;
  backdrop-filter:none!important;
+ isolation:isolate!important;
 }
 #tf503020Overlay .tf503020-shell{
  height:auto!important;
@@ -91,7 +97,7 @@ function installStyle(){
 @media(max-width:680px){
  .tf126-routine-overlay{bottom:${AD_SAFE}px!important}
  .tf126-routine-content{height:calc(100dvh - ${AD_SAFE + 4}px)!important;max-height:calc(100dvh - ${AD_SAFE + 4}px)!important}
- #tf503020Overlay.tf503020-overlay.open{bottom:${AD_SAFE}px!important}
+ #tf503020Overlay.tf503020-overlay.open{inset:0!important;bottom:0!important;height:100dvh!important;max-height:100dvh!important}
 }
 `;
  document.head.appendChild(s);
@@ -140,9 +146,15 @@ function compactAll(){
  document.querySelectorAll(ROUTINE_SCROLL).forEach(compactOne);
  const fifty=document.getElementById('tf503020Overlay');
  if(fifty){
-  fifty.style.setProperty('bottom',AD_SAFE+'px','important');
-  fifty.style.setProperty('height','auto','important');
-  fifty.style.setProperty('max-height','none','important');
+  fifty.style.setProperty('inset','0','important');
+  fifty.style.setProperty('top','0','important');
+  fifty.style.setProperty('right','0','important');
+  fifty.style.setProperty('bottom','0','important');
+  fifty.style.setProperty('left','0','important');
+  fifty.style.setProperty('width','100vw','important');
+  fifty.style.setProperty('min-height','100dvh','important');
+  fifty.style.setProperty('height','100dvh','important');
+  fifty.style.setProperty('max-height','100dvh','important');
   fifty.style.setProperty('padding-bottom','0','important');
   fifty.style.setProperty('scroll-padding-bottom','0','important');
   fifty.style.setProperty('background','#050914','important');
