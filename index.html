@@ -72,16 +72,42 @@ async function start(){
   const ctrl=new AbortController();
   timer=setTimeout(()=>ctrl.abort(),15000);
   try{
-    const res=await fetch('./taskflow-loader-v102.html?v=1280-20260930',{cache:'default',signal:ctrl.signal});
+    const res=await fetch('./taskflow-loader-v102.html?v=13031-20261001',{cache:'default',signal:ctrl.signal});
     if(!res.ok)throw new Error('No se pudo cargar la base de TaskFlow ('+res.status+')');
     let html=await res.text();
     if(timer){clearTimeout(timer);timer=null;}
 
-    const loaderVersion='<div class="version">V102 · iconos y desplazamiento estable</div>';
-    const loaderFine='<div class="fine">Carga segura por HTTPS · TaskFlow</div>';
-    const loaderBar='<div class="bar"><i></i></div>';
-    const loaderBrand='<div class="nv-watermark" aria-label="Creado y actualizado por NovaVision GT" style="margin:26px auto 0;display:grid;justify-items:center;gap:8px;opacity:.44;max-width:280px"><img src="./novavision-watermark.svg" alt="NovaVision GT" style="display:block;width:min(220px,68vw);height:auto;border-radius:10px;filter:saturate(.82) brightness(.86);opacity:.48"><span style="font-size:9px;letter-spacing:.08em;color:#8290a8;text-transform:uppercase;font-weight:750">Creado y actualizado por NovaVision GT</span></div>';
-    html=html.replace(loaderVersion,'').replace(loaderFine,'').replace(loaderBar,loaderBar+loaderBrand);
+    const loaderVisualStyle=`<style id="tf-loader-visual-restore">
+html,body{margin:0!important;min-height:100%!important;background:#050914!important;color:#fff!important;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important}
+.boot{min-height:100dvh!important;display:grid!important;place-items:center!important;padding:24px!important;overflow:hidden!important;background:radial-gradient(circle at 50% 28%,rgba(66,225,209,.10),transparent 34%),linear-gradient(180deg,#050914 0%,#07101e 58%,#050914 100%)!important}
+.card{width:min(440px,100%)!important;text-align:center!important}
+.logo{font-size:44px!important;line-height:1!important;font-weight:950!important;letter-spacing:-.04em!important;background:linear-gradient(90deg,#42e1d1,#67e5d6,#ff9a43)!important;-webkit-background-clip:text!important;background-clip:text!important;color:transparent!important;-webkit-text-fill-color:transparent!important;text-shadow:0 0 34px rgba(66,225,209,.10)!important}
+.sub{margin-top:10px!important;font-size:10px!important;letter-spacing:.17em!important;text-transform:uppercase!important;color:#8291aa!important;font-weight:850!important}
+.msg{margin-top:20px!important;color:#aab5c8!important;font-size:13px!important;line-height:normal!important}
+.bar{height:5px!important;border-radius:999px!important;background:#10192b!important;overflow:hidden!important;margin:22px auto 0!important;max-width:310px!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.035)!important}
+.bar>i{display:block!important;height:100%!important;width:0!important;background:linear-gradient(90deg,#40dfd0,#62e4b0,#ff9a43)!important;animation:tfBoot5 5s linear forwards!important;border-radius:999px!important;transform:none!important}
+@keyframes tfBoot5{from{width:0}to{width:100%}}
+.nv-watermark{margin:30px auto 0!important;display:grid!important;justify-items:center!important;gap:8px!important;opacity:.44!important;max-width:280px!important}
+.nv-watermark img{display:block!important;width:min(220px,68vw)!important;height:auto!important;border-radius:10px!important;filter:saturate(.82) brightness(.86)!important;opacity:.48!important}
+.nv-watermark span{font-size:9px!important;letter-spacing:.08em!important;color:#8290a8!important;text-transform:uppercase!important;font-weight:750!important}
+.retry{display:none;margin:16px auto 0!important;border:1px solid rgba(75,226,212,.3)!important;border-radius:12px!important;padding:10px 16px!important;background:#12323a!important;color:#55e1d3!important;font-weight:800!important}
+.error .bar{display:none!important}.error .retry{display:inline-flex!important}
+.detail{display:none!important;margin:12px auto 0!important;max-width:370px!important;color:#75849d!important;font-size:10px!important;line-height:1.45!important;word-break:break-word!important}.error .detail{display:block!important}
+</style>`;
+    const loaderScreen=`<div class="boot" id="boot"><div class="card">
+  <div class="logo">TaskFlow</div>
+  <div class="sub">Organiza · Avanza · Cumple</div>
+  <div class="msg" id="msg">Preparando tu sistema…</div>
+  <div class="bar"><i></i></div>
+  <div class="nv-watermark" aria-label="Creado y actualizado por NovaVision GT">
+    <img src="./novavision-watermark.svg" alt="NovaVision GT">
+    <span>Creado y actualizado por NovaVision GT</span>
+  </div>
+  <button class="retry" id="retry" type="button">Reintentar</button>
+  <div class="detail" id="detail"></div>
+</div></div>`;
+    html=html.replace('</head>',loaderVisualStyle+'</head>');
+    html=html.replace(/<div class="boot" id="boot"><div class="card">[\s\S]*?<\/div><\/div>\s*<script>/,loaderScreen+'<script>');
 
     const headNeedle="if(html.includes('</head>'))html=html.replace('</head>',injectedStyle+cleanupScript+scrollBridgeScript+iconPortalGuard+'</head>');";
     const headFix="if(html.includes('</head>'))html=html.replace('</head>',injectedStyle+cleanupScript+'<script src=\"./taskflow-touch-v105.js?v=1240-20260926\"><\\/script>'+scrollBridgeScript+iconPortalGuard+'<link rel=\"stylesheet\" href=\"./taskflow-503020.css?v=1110-20260909\"><link rel=\"stylesheet\" href=\"./taskflow-profile-v108.css?v=1110-20260909\"><style id=\"tf-v1192-main-spacing\">.wrap{padding-bottom:max(20px,env(safe-area-inset-bottom))!important}.v48-discipline-center{margin-bottom:0!important}</style>'+'</head>');";
