@@ -11,7 +11,7 @@ function storageSnapshot(){const out={};for(const k of ROUTINE_KEYS){try{out[k]=
 function restoreStorage(snap){if(!snap)return;for(const k of ROUTINE_KEYS){try{const now=localStorage.getItem(k),old=snap[k];if(now===old)continue;if(old===null)localStorage.removeItem(k);else localStorage.setItem(k,old)}catch(_){}}}
 function readRoutineCfg(){try{const x=JSON.parse(localStorage.getItem('taskflow_routines_v115')||'{}');return x&&typeof x==='object'&&!Array.isArray(x)?x:{}}catch(_){return {}}}
 function userDisabledMentalista(){try{return localStorage.getItem('taskflow_v13041_mentalista_user_choice')==='off'}catch(_){return false}}
-function refreshRoutines(){try{window.TaskFlowV117&&window.TaskFlowV117.refresh&&window.TaskFlowV117.refresh()}catch(_){}try{window.TaskFlowV119&&window.TaskFlowV119.refresh&&window.TaskFlowV119.refresh()}catch(_){}}
+function refreshRoutines(){try{window.TaskFlowV117&&window.TaskFlowV117.refresh&&window.TaskFlowV117.refresh()}catch(_){}try{window.TaskFlowV119&&window.TaskFlowV119.refresh&&window.TaskFlowV119.refresh()}catch(_){} }
 function mentalistaCard(){return document.getElementById('tfMentalistPairV117')||document.querySelector('.v94-mentalist-launch')?.closest('.v94-mentalist-card,.v83-core-card,.v69-routine-launch')||null}
 function showMentalistaWhenEnabled(){
   if(userDisabledMentalista())return;
@@ -21,7 +21,7 @@ function showMentalistaWhenEnabled(){
   const card=mentalistaCard();if(!card)return;
   card.hidden=false;card.removeAttribute('aria-hidden');
   card.classList.remove('tf117-off','tf119-off','hidden','tf13051-inline-hidden','tf1305-inline-hidden');
-  ['display','visibility','opacity','height','max-height'].forEach(p=>{try{card.style.removeProperty(p)}catch(_){}});
+  ['display','visibility','opacity','height','max-height'].forEach(p=>{try{card.style.removeProperty(p)}catch(_){} });
 }
 function cleanupOldSearchDamage(){
   ['tfV13051SearchStyle','tfV1305SearchStyle'].forEach(id=>{const el=document.getElementById(id);if(el)el.remove()});
@@ -29,7 +29,7 @@ function cleanupOldSearchDamage(){
   document.querySelectorAll('.tf13051-inline-hidden,.tf1305-inline-hidden').forEach(el=>el.classList.remove('tf13051-inline-hidden','tf1305-inline-hidden'));
   const discipline=document.querySelector('.v48-discipline-center');
   const analysis=document.querySelector('.v48-analysis-panel');
-  [discipline,analysis].forEach(el=>{if(!el)return;el.hidden=false;el.removeAttribute('aria-hidden');el.classList.remove('tf13051-inline-hidden','tf1305-inline-hidden','hidden');['display','visibility','opacity','height','max-height','overflow'].forEach(p=>{try{el.style.removeProperty(p)}catch(_){}})});
+  [discipline,analysis].forEach(el=>{if(!el)return;el.hidden=false;el.removeAttribute('aria-hidden');el.classList.remove('tf13051-inline-hidden','tf1305-inline-hidden','hidden');['display','visibility','opacity','height','max-height','overflow'].forEach(p=>{try{el.style.removeProperty(p)}catch(_){} })});
   showMentalistaWhenEnabled();
 }
 function dispatchNative(value){if(!input)return;input.value=value;allowNative=true;try{input.dispatchEvent(new Event('input',{bubbles:true,cancelable:true}))}finally{allowNative=false}}
@@ -59,7 +59,6 @@ function copyResults(){
   host.innerHTML='';
   if(!source){host.innerHTML='<div class="tf13052-empty">No se encontraron coincidencias para esta búsqueda.</div>';return}
   const clone=source.cloneNode(true);stripIds(clone);clone.hidden=false;clone.removeAttribute('hidden');clone.removeAttribute('aria-hidden');clone.classList.remove('tf13051-inline-hidden','tf1305-inline-hidden');clone.classList.add('tf13052-result-copy');removeSearchHeader(clone);
-  clone.querySelectorAll('[style]').forEach(el=>{const st=String(el.getAttribute('style')||'');if(/display\s*:\s*none/i.test(st))el.style.removeProperty('display')});
   const meaningful=norm(clone.textContent).replace(/RESULTADOS DE BUSQUEDA/g,'').replace(/COINCIDENCIAS EN TAREAS Y HABITOS/g,'').trim();
   if(!meaningful){host.innerHTML='<div class="tf13052-empty">No se encontraron coincidencias para esta búsqueda.</div>';return}
   host.appendChild(clone)
@@ -88,7 +87,7 @@ function submit(){
   clearTimeout(searchTimer);
   searchTimer=setTimeout(()=>{copyResults();resetNativeKeepingText(query,snapshot);openModal(query)},90)
 }
-function clearSearch(){if(!input)return;if(modal&&modal.classList.contains('open'))closeModal();dispatchNative('');input.value='';updateActions();cleanupOldSearchDamage();try{input.focus()}catch(_){}}
+function clearSearch(){if(!input)return;if(modal&&modal.classList.contains('open'))closeModal();dispatchNative('');input.value='';updateActions();cleanupOldSearchDamage();try{input.focus()}catch(_){} }
 function updateActions(){if(!actions||!input)return;actions.hidden=!input.value.trim()}
 function markLoupe(){if(!container)return;let icon=container.querySelector('.search-icon');if(!icon){icon=[...container.querySelectorAll('svg')].find(el=>!el.closest('.tf13052-search-actions')&&!el.closest('button'))?.parentElement||null}if(icon)icon.classList.add('tf13052-loupe')}
 function installControls(){
