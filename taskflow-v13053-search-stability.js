@@ -10,6 +10,7 @@ const norm=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUp
 
 function getLS(k){try{return localStorage.getItem(k)}catch(_){return null}}
 function setLS(k,v){try{if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(_){}}
+function readCfg(){try{const c=JSON.parse(getLS(CFG)||'{}');return c&&typeof c==='object'&&!Array.isArray(c)?c:{}}catch(_){return {}}}
 function snapshotRoutineCfg(){lastCfgRaw=getLS(CFG);lastCfgMeta=getLS(CFG_META)}
 function refreshRoutines(){try{window.TaskFlowV117&&window.TaskFlowV117.refresh&&window.TaskFlowV117.refresh()}catch(_){}try{window.TaskFlowV119&&window.TaskFlowV119.refresh&&window.TaskFlowV119.refresh()}catch(_){}}
 function restoreRoutineCfg(){
@@ -20,10 +21,10 @@ function restoreRoutineCfg(){
 }
 function stabilizeRoutines(){[0,70,180,420,850,1350].forEach(ms=>setTimeout(restoreRoutineCfg,ms))}
 function mentalistaVisible(){
-  try{const c=JSON.parse(getLS(CFG)||'{}');if(c&&c.mentalista===false)return false}catch(_){}
+  const c=readCfg();if(c.mentalista===false)return false;
   const card=document.getElementById('tfMentalistPairV117');
   if(card){card.classList.remove('tf117-off','tf119-off','hidden');card.hidden=false;card.removeAttribute('aria-hidden');['display','visibility','opacity','height','max-height'].forEach(p=>{try{card.style.removeProperty(p)}catch(_){}})}
-  const pair=document.getElementById('tfPairV117');if(pair){pair.classList.remove('tf117-single','tf119-single','tf119-empty')}
+  const pair=document.getElementById('tfPairV117');if(pair){const single=c.budget503020===false;pair.classList.remove('tf119-empty');pair.classList.toggle('tf117-single',single);pair.classList.toggle('tf119-single',single)}
   return true;
 }
 function restoreDashboard(){restoreRoutineCfg();refreshRoutines();setTimeout(()=>{restoreRoutineCfg();mentalistaVisible()},50);setTimeout(()=>{restoreRoutineCfg();mentalistaVisible()},250)}
