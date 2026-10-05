@@ -4,7 +4,7 @@ if(window.__tfV13058AudioBoost)return;window.__tfV13058AudioBoost=true;
 
 /* V130.5.8 · Capa aislada de audio.
    - No modifica rutinas, búsqueda, perfil, datos ni diseño.
-   - Acelera la descarga obligatoria iniciando en paralelo el siguiente audio.
+   - Acelera la descarga obligatoria iniciando en paralelo los audios siguientes.
    - Pausa únicamente la música de TaskFlow mientras se reproduce un video y la reanuda al salir/terminar. */
 
 const TRACK_URLS=[
@@ -33,22 +33,25 @@ function bufferResponse(url){
 function makeResponse(data){
   return new Response(data.buffer.slice(0),{status:data.status,statusText:data.statusText,headers:new Headers(data.headers)});
 }
-function prefetchOtherTracks(requestedUrl){
-  for(const url of TRACK_URLS){
-    if(url===requestedUrl||bufferedJobs.has(url))continue;
+function prefetchFollowingTracks(requestedUrl){
+  const requestedIndex=TRACK_URLS.indexOf(requestedUrl);
+  if(requestedIndex<0)return;
+  for(let i=requestedIndex+1;i<TRACK_URLS.length;i++){
+    const url=TRACK_URLS[i];
+    if(bufferedJobs.has(url))continue;
     bufferedJobs.set(url,bufferResponse(url).catch(()=>null));
   }
 }
 
-/* Mantiene el primer archivo como descarga visible/progresiva y descarga los demás
-   simultáneamente. Cuando TaskFlow pide el siguiente, normalmente ya está listo. */
+/* Mantiene el archivo solicitado como descarga visible/progresiva y prepara los
+   siguientes simultáneamente. Evita volver a descargar pistas anteriores. */
 window.fetch=function(input,init){
   const url=absoluteUrl(input);
   if(!TRACK_SET.has(url))return nativeFetch(input,init);
   if(bufferedJobs.has(url)){
     return bufferedJobs.get(url).then(data=>data?makeResponse(data):nativeFetch(input,init));
   }
-  prefetchOtherTracks(url);
+  prefetchFollowingTracks(url);
   return nativeFetch(input,init);
 };
 
@@ -99,7 +102,7 @@ function scheduleVideoResume(delay){
 }
 function reconcileVideos(){
   for(const video of Array.from(activeVideos))if(!videoStillPresent(video))activeVideos.delete(video);
-  if(!activeVideos.size){if(videoWatch){clearInterval(videoWatch);videoWatch=0}}
+  if(!activeVideos.size&&videoWatch){clearInterval(videoWatch);videoWatch=0}
 }
 function startVideoWatch(){
   if(videoWatch)return;
