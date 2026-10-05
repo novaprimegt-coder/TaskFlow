@@ -2,19 +2,19 @@
 'use strict';
 if(window.__tfV13058AudioBoost)return;window.__tfV13058AudioBoost=true;
 
-/* V130.5.8 · Capa aislada de audio.
+/* V130.5.9 · Capa aislada de audio.
    - No modifica rutinas, búsqueda, perfil, datos ni diseño.
-   - Acelera la descarga obligatoria iniciando en paralelo los audios siguientes.
+   - Acelera la descarga obligatoria usando descargas por rangos concurrentes cuando el servidor lo permite.
+   - Mantiene un único flujo final para que V130.5.7 siga validando y guardando la música completa en IndexedDB.
    - Pausa únicamente la música de TaskFlow mientras se reproduce un video y la reanuda al salir/terminar. */
 
-const TRACK_URLS=[
-  new URL('./audio/Las%20MEJORES%20Frases%20de%20MOTIVACI%C3%93N%20de%20SOLO%20LEVELING%20para%20Escuchar%20%F0%9F%94%A5%F0%9F%92%AF(MP3_160K).mp3',location.href).href,
-  new URL('./audio/Las%20MEJORES%20Frases%20de%20MOTIVACI%C3%93N%20del%20ANIME%20para%20ESCUCHAR%20%F0%9F%94%A5%F0%9F%92%AF(MP3_160K).mp3',location.href).href
+const TRACKS=[
+  {url:new URL('./audio/Las%20MEJORES%20Frases%20de%20MOTIVACI%C3%93N%20de%20SOLO%20LEVELING%20para%20Escuchar%20%F0%9F%94%A5%F0%9F%92%AF(MP3_160K).mp3',location.href).href,size:12698636},
+  {url:new URL('./audio/Las%20MEJORES%20Frases%20de%20MOTIVACI%C3%93N%20del%20ANIME%20para%20ESCUCHAR%20%F0%9F%94%A5%F0%9F%92%AF(MP3_160K).mp3',location.href).href,size:14697486}
 ];
-const TRACK_SET=new Set(TRACK_URLS);
+const TRACK_MAP=new Map(TRACKS.map(track=>[track.url,track]));
 const nativeFetch=window.fetch.bind(window);
 const nativePlay=HTMLMediaElement.prototype.play;
-const bufferedJobs=new Map();
 const knownTaskFlowAudio=new Set();
 const activeVideos=new Set();
 let videoWatch=0,resumeAfterVideo=0;
@@ -22,37 +22,88 @@ let videoWatch=0,resumeAfterVideo=0;
 function absoluteUrl(input){
   try{return new URL(typeof input==='string'?input:(input&&input.url)||'',location.href).href}catch(_){return ''}
 }
-function bufferResponse(url){
-  return nativeFetch(url,{cache:'no-store',credentials:'same-origin'}).then(async response=>{
-    const buffer=await response.arrayBuffer();
-    const headers=new Headers(response.headers);
-    if(!headers.get('content-length'))headers.set('content-length',String(buffer.byteLength));
-    return {buffer,status:response.status,statusText:response.statusText,headers};
-  });
+function networkConcurrency(){
+  try{
+    const c=navigator.connection||navigator.mozConnection||navigator.webkitConnection;
+    const type=String(c&&c.effectiveType||'').toLowerCase();
+    if(type==='slow-2g'||type==='2g')return 2;
+    if(type==='3g')return 4;
+    return 6;
+  }catch(_){return 6}
 }
-function makeResponse(data){
-  return new Response(data.buffer.slice(0),{status:data.status,statusText:data.statusText,headers:new Headers(data.headers)});
+function fastInit(extra){
+  const out=Object.assign({cache:'default',credentials:'same-origin'},extra||{});
+  try{out.priority='high'}catch(_){}
+  return out;
 }
-function prefetchFollowingTracks(requestedUrl){
-  const requestedIndex=TRACK_URLS.indexOf(requestedUrl);
-  if(requestedIndex<0)return;
-  for(let i=requestedIndex+1;i<TRACK_URLS.length;i++){
-    const url=TRACK_URLS[i];
-    if(bufferedJobs.has(url))continue;
-    bufferedJobs.set(url,bufferResponse(url).catch(()=>null));
+async function fetchRange(url,start,end,retries){
+  let lastError=null;
+  for(let attempt=0;attempt<=retries;attempt++){
+    try{
+      const response=await nativeFetch(url,fastInit({headers:{Range:'bytes='+start+'-'+end}}));
+      if(response.status!==206)throw new Error('El servidor no entregó el rango solicitado.');
+      const range=response.headers.get('content-range')||'';
+      if(range&&range.indexOf('bytes '+start+'-')!==0)throw new Error('El rango recibido no coincide.');
+      return response;
+    }catch(err){lastError=err;if(attempt<retries)await new Promise(r=>setTimeout(r,120*(attempt+1)))}
   }
+  throw lastError||new Error('No se pudo descargar un segmento de audio.');
+}
+async function streamResponseBody(response,controller,expectedBytes){
+  let received=0;
+  if(response.body&&response.body.getReader){
+    const reader=response.body.getReader();
+    while(true){
+      const part=await reader.read();
+      if(part.done)break;
+      if(part.value&&part.value.byteLength){received+=part.value.byteLength;controller.enqueue(part.value)}
+    }
+  }else{
+    const buffer=await response.arrayBuffer();
+    received=buffer.byteLength;
+    controller.enqueue(new Uint8Array(buffer));
+  }
+  if(received!==expectedBytes)throw new Error('Segmento de audio incompleto.');
+}
+async function fastTrackResponse(track){
+  const total=track.size;
+  const parts=Math.max(2,Math.min(networkConcurrency(),Math.ceil(total/(2*1024*1024))));
+  const segmentSize=Math.ceil(total/parts);
+  const firstEnd=Math.min(total-1,segmentSize-1);
+
+  /* El primer pedido también funciona como prueba de Range. Si Pages no admite
+     rangos, ese mismo response 200 ya contiene el archivo completo y se usa sin duplicarlo. */
+  const first=await nativeFetch(track.url,fastInit({headers:{Range:'bytes=0-'+firstEnd}}));
+  if(first.status!==206){return first}
+
+  const ranges=[];
+  for(let i=0;i<parts;i++){
+    const start=i*segmentSize;
+    if(start>=total)break;
+    const end=Math.min(total-1,start+segmentSize-1);
+    ranges.push({start,end,length:end-start+1});
+  }
+  const jobs=ranges.map((range,index)=>index===0?Promise.resolve(first):fetchRange(track.url,range.start,range.end,2));
+  const stream=new ReadableStream({
+    async start(controller){
+      try{
+        for(let i=0;i<jobs.length;i++){
+          const response=await jobs[i];
+          await streamResponseBody(response,controller,ranges[i].length);
+        }
+        controller.close();
+      }catch(err){controller.error(err)}
+    }
+  });
+  return new Response(stream,{status:200,statusText:'OK',headers:{'Content-Type':'audio/mpeg','Content-Length':String(total),'Cache-Control':'no-store','X-TaskFlow-Download':'parallel-range'}});
 }
 
-/* Mantiene el archivo solicitado como descarga visible/progresiva y prepara los
-   siguientes simultáneamente. Evita volver a descargar pistas anteriores. */
+/* Solo intercepta los dos MP3 de TaskFlow. Todo el resto del sistema conserva fetch intacto. */
 window.fetch=function(input,init){
   const url=absoluteUrl(input);
-  if(!TRACK_SET.has(url))return nativeFetch(input,init);
-  if(bufferedJobs.has(url)){
-    return bufferedJobs.get(url).then(data=>data?makeResponse(data):nativeFetch(input,init));
-  }
-  prefetchFollowingTracks(url);
-  return nativeFetch(input,init);
+  const track=TRACK_MAP.get(url);
+  if(!track)return nativeFetch(input,init);
+  return fastTrackResponse(track).catch(()=>nativeFetch(input,Object.assign({},init||{},{cache:'default',credentials:'same-origin'})));
 };
 
 function isTaskFlowMusic(media){
