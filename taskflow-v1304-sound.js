@@ -34,7 +34,7 @@ function writeEnabled(value){try{localStorage.setItem(STORAGE_KEY,value?'1':'0')
 function readOnlyInApp(){try{return localStorage.getItem(ONLY_APP_KEY)==='1'}catch(_){return false}}
 function writeOnlyInApp(value){try{localStorage.setItem(ONLY_APP_KEY,value?'1':'0')}catch(_){}}
 function canPlayNow(){return enabled&&audioReady&&(!onlyInApp||!document.hidden)}
-function enforceVolume(audio){if(!audio)return;try{audio.volume=1;audio.muted=false}catch(_){}}
+function enforceVolume(audio){if(!audio)return;try{audio.volume=.70;audio.muted=false}catch(_){}}
 function setPlaybackState(state){try{if('mediaSession' in navigator)navigator.mediaSession.playbackState=state}catch(_){}}
 function updatePanel(){
   if(toggle)toggle.checked=enabled;
