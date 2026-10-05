@@ -17,9 +17,61 @@ function style(){if($('tfV120Style'))return;const s=document.createElement('styl
 function currentUser(){try{return window.firebase&&window.firebase.auth?window.firebase.auth().currentUser:null}catch(_){return null}}
 async function ensureFirebase(){if(window.TaskFlowFirebase&&window.TaskFlowFirebase.initialize)await window.TaskFlowFirebase.initialize();let n=0;while(!(window.firebase&&window.firebase.auth)&&n<40){await new Promise(r=>setTimeout(r,100));n++}if(!(window.firebase&&window.firebase.auth))throw new Error('AUTH_UNAVAILABLE');if(!(window.firebase.firestore)){await new Promise((resolve,reject)=>{const src='https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore-compat.js';if([...document.scripts].some(s=>s.src===src))return resolve();const e=document.createElement('script');e.src=src;e.onload=resolve;e.onerror=reject;document.head.appendChild(e)})}return window.firebase.firestore()}
 function gt(){const p={};new Intl.DateTimeFormat('en-CA',{timeZone:'America/Guatemala',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',hourCycle:'h23'}).formatToParts(new Date()).forEach(x=>{if(x.type!=='literal')p[x.type]=x.value});const y=+p.year,m=+p.month,d=+p.day,h=+p.hour||0,dm=`${String(d).padStart(2,'0')}/${String(m).padStart(2,'0')}/${y}`;const q=new Date(Date.UTC(y,m-1,d,12));if(h<1)q.setUTCDate(q.getUTCDate()-1);const iso=`${q.getUTCFullYear()}-${String(q.getUTCMonth()+1).padStart(2,'0')}-${String(q.getUTCDate()).padStart(2,'0')}`;return{dm,iso,key:iso+'-GT-01'}}
-function resetLocal(stamp){const a=[MAIN,REC,BACK].map(k=>{try{const r=localStorage.getItem(k),d=r?JSON.parse(r):null;return d&&typeof d==='object'&&!Array.isArray(d)?{d,t:Number(d.savedAt)||0}:null}catch(_){return null}}).filter(Boolean);if(!a.length)throw new Error('NO_STATE');a.sort((x,y)=>y.t-x.t);const d=a[0].d;if(!d.meta||typeof d.meta!=='object'||Array.isArray(d.meta))d.meta={};const m=d.meta,g=gt();m.habitStreakCurrent=0;m.habitStreakBest=0;m.taskStreakCurrent=0;m.taskStreakBest=0;m.unifiedStreakCurrent=0;m.unifiedStreakBest=0;m.lastUnifiedSuccessDate=null;m.dailyPenaltyTokens={};m.v32PerfectDayLog={};m.incomeMissionPenaltyTokens={};m.punishmentActive=false;m.punishmentReason='';m.punishmentCompleted=false;m.punishmentTarget=null;m.lastPunishmentCycleKey=g.key;m.lastHabitCycleKey=g.key;m.lastTaskProcessingDate=g.dm;m.v32ShopPerfectProcessed=g.iso;d.savedAt=Math.max(Date.now(),Number(stamp)||0);const raw=JSON.stringify(d);localStorage.setItem(MAIN,raw);localStorage.setItem(BACK,raw);localStorage.setItem(REC,raw);localStorage.setItem(TOUCH,String(d.savedAt));return d.savedAt}
+function tf120KeyName(value){return String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9]+/g,'')}
+function tf120ProtectedUserBranch(key){const n=tf120KeyName(key);return /^(TASKS?|TAREAS?|HABITS?|HABITOS?|AVITOS?)$/.test(n)}
+function tf120ProgressKey(key){
+ const n=tf120KeyName(key);
+ if(!n)return false;
+ return /(XP|EXPERIENCE|EXPERIENCIA|POINTS?|PUNTOS?|LEVEL|NIVEL|RANK|RANGO|STREAK|RACHA|PROGRESS|PROGRESO|SCORE|PUNTAJE|CONSECUTIVE|CONSECUTIVO|SUCCESS|EXITO|FAIL|FAILURE|FALLA|PENALTY|PENALIZACION|PUNISH|CASTIGO|PERFECT|COMPLETED|COMPLETE|DONE|FINISHED|CLAIMED|REDEEMED|HISTORY|HISTORIAL|DISCIPLINE|DISCIPLINA|GOOD.*DAY|BAD.*DAY|DAY.*GOOD|DAY.*BAD|DIA.*BUEN|DIA.*MAL|TOKEN|COIN|MONEDA|CURRENCY|BALANCE|SALDO|SAVING|AHORRO)/.test(n);
+}
+function tf120ZeroProgress(value,key){
+ if(tf120ProtectedUserBranch(key))return value;
+ if(tf120ProgressKey(key)){
+   if(typeof value==='number')return 0;
+   if(typeof value==='boolean')return false;
+   if(typeof value==='string')return /^-?\d+(?:\.\d+)?$/.test(value.trim())?'0':'';
+   if(Array.isArray(value))return [];
+   if(value&&typeof value==='object')return {};
+   return null;
+ }
+ if(Array.isArray(value))return value.map(v=>v&&typeof v==='object'?tf120ZeroProgress(v,''):v);
+ if(value&&typeof value==='object'){
+   const out={};
+   Object.keys(value).forEach(k=>{out[k]=tf120ZeroProgress(value[k],k)});
+   return out;
+ }
+ return value;
+}
+function tf120ClearAuxProgress(){
+ const preserve=/sound|audio|music|firebase|auth|profile|cloud_bound|cloud_sync_meta|routines_v115|routines_v115_meta|mentalista_user_choice|mentalista_enabled_guard/i;
+ const personal=/task|tarea|habit|habito|avito/i;
+ const progress=/progress|streak|racha|xp|experience|experiencia|points?|puntos?|level|nivel|rank|rango|score|puntaje|success|exito|fail|falla|penalty|castigo|perfect|completed|complete|done|finished|history|historial|discipline|disciplina|good.*day|bad.*day|dia.*buen|dia.*mal|token|coin|moneda|saldo|saving|ahorro/i;
+ const keys=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k)keys.push(k)}
+ keys.forEach(k=>{
+   if(!k.startsWith('taskflow_')||k===MAIN||k===BACK||k===REC||k===TOUCH)return;
+   if(preserve.test(k)||personal.test(k)||k.startsWith(RESET_PREFIX))return;
+   if(progress.test(k)||/welcome.*seen|headphones.*seen/i.test(k)){try{localStorage.removeItem(k)}catch(_){}}
+ });
+}
+function resetLocal(stamp){
+ const a=[MAIN,REC,BACK].map(k=>{try{const r=localStorage.getItem(k),d=r?JSON.parse(r):null;return d&&typeof d==='object'&&!Array.isArray(d)?{d,t:Number(d.savedAt)||0}:null}catch(_){return null}}).filter(Boolean);
+ if(!a.length)throw new Error('NO_STATE');
+ a.sort((x,y)=>y.t-x.t);
+ let d=tf120ZeroProgress(a[0].d,'');
+ if(!d.meta||typeof d.meta!=='object'||Array.isArray(d.meta))d.meta={};
+ const m=d.meta,g=gt();
+ m.habitStreakCurrent=0;m.habitStreakBest=0;m.taskStreakCurrent=0;m.taskStreakBest=0;m.unifiedStreakCurrent=0;m.unifiedStreakBest=0;
+ m.lastUnifiedSuccessDate=null;m.dailyPenaltyTokens={};m.v32PerfectDayLog={};m.incomeMissionPenaltyTokens={};
+ m.punishmentActive=false;m.punishmentReason='';m.punishmentCompleted=false;m.punishmentTarget=null;
+ m.lastPunishmentCycleKey=g.key;m.lastHabitCycleKey=g.key;m.lastTaskProcessingDate=g.dm;m.v32ShopPerfectProcessed=g.iso;
+ d.savedAt=Math.max(Date.now(),Number(stamp)||0);
+ const raw=JSON.stringify(d);
+ localStorage.setItem(MAIN,raw);localStorage.setItem(BACK,raw);localStorage.setItem(REC,raw);localStorage.setItem(TOUCH,String(d.savedAt));
+ tf120ClearAuxProgress();
+ return d.savedAt;
+}
 function removeOld(){const o=$('tfResetModalV117');if(o)o.remove()}
-function buildReset(){removeOld();if($('tfResetModalV120'))return;const o=document.createElement('div');o.id='tfResetModalV120';o.className='tf120-overlay';o.innerHTML=`<section class="tf120-card"><header class="tf120-head"><div class="tf120-icon">↺</div><div><small>REINICIO DE SISTEMA</small><h2>Volver a 0 días</h2><p>Reinicia rachas, progreso e historial de fallas.</p></div><button class="tf120-close" type="button">×</button></header><div class="tf120-body"><div class="tf120-zero"><span>Nuevo punto de inicio</span><strong>0 días</strong></div><div class="tf120-box"><b id="tf120ScopeTitle">Reinicio del dispositivo</b><span id="tf120ScopeText"></span></div><div class="tf120-keep"><div><b>Se conserva</b>Hábitos y tareas personales</div><div><b>Se elimina</b>Rachas e historial de fallas</div></div><button class="tf120-action" id="tf120ResetConfirm" type="button">Reiniciar progreso</button><div id="tf120ResetStatus" class="tf120-status"></div></div></section>`;document.body.appendChild(o);o.querySelector('.tf120-close').onclick=closeReset;o.onclick=e=>{if(e.target===o)closeReset()};$('tf120ResetConfirm').onclick=doReset}
+function buildReset(){removeOld();if($('tfResetModalV120'))return;const o=document.createElement('div');o.id='tfResetModalV120';o.className='tf120-overlay';o.innerHTML=`<section class="tf120-card"><header class="tf120-head"><div class="tf120-icon">↺</div><div><small>REINICIO DE SISTEMA</small><h2>Volver a 0 días</h2><p>Reinicia todo el progreso, XP, rachas y días buenos o malos.</p></div><button class="tf120-close" type="button">×</button></header><div class="tf120-body"><div class="tf120-zero"><span>Nuevo punto de inicio</span><strong>0 días</strong></div><div class="tf120-box"><b id="tf120ScopeTitle">Reinicio del dispositivo</b><span id="tf120ScopeText"></span></div><div class="tf120-keep"><div><b>Se conserva</b>Música, hábitos y tareas personales</div><div><b>Se elimina</b>XP, rachas, días buenos/malos y progreso</div></div><button class="tf120-action" id="tf120ResetConfirm" type="button">Reiniciar progreso</button><div id="tf120ResetStatus" class="tf120-status"></div></div></section>`;document.body.appendChild(o);o.querySelector('.tf120-close').onclick=closeReset;o.onclick=e=>{if(e.target===o)closeReset()};$('tf120ResetConfirm').onclick=doReset}
 function openReset(){buildReset();const o=$('tfResetModalV120'),u=currentUser(),t=$('tf120ScopeTitle'),x=$('tf120ScopeText'),b=$('tf120ResetConfirm');if(u){t.textContent='Reinicio de toda la cuenta';x.textContent='El cambio se aplicará automáticamente a todos los dispositivos donde uses esta misma cuenta.';b.textContent='Reiniciar cuenta en todos los dispositivos'}else{t.textContent='Reinicio de este dispositivo';x.textContent='No hay una cuenta iniciada. Solo se reiniciará el progreso guardado en este dispositivo.';b.textContent='Reiniciar este dispositivo'}$('tf120ResetStatus').textContent='';prevOverflow=document.body.style.overflow||'';document.body.style.overflow='hidden';o.classList.add('open')}
 function closeReset(){if(busyReset)return;const o=$('tfResetModalV120');if(o)o.classList.remove('open');document.body.style.overflow=prevOverflow}
 async function doReset(){if(busyReset)return;busyReset=true;const b=$('tf120ResetConfirm'),s=$('tf120ResetStatus');b.disabled=true;try{const u=currentUser(),stamp=Date.now();if(u){const db=await ensureFirebase();await db.doc('users/'+u.uid+'/control/resetState').set({resetAt:stamp,version:120},{merge:true});localStorage.setItem(RESET_PREFIX+u.uid,String(stamp))}resetLocal(stamp);if(u&&window.TaskFlowCloudSync&&window.TaskFlowCloudSync.syncNow){const ok=await window.TaskFlowCloudSync.syncNow();if(ok===false)throw new Error('SYNC')}s.textContent=u?'Cuenta reiniciada. El cambio se enviará a todos tus dispositivos.':'Dispositivo reiniciado.';s.className='tf120-status ok';setTimeout(()=>location.reload(),650)}catch(e){s.textContent='No se pudo completar el reinicio. Revisa tu conexión e inténtalo otra vez.';s.className='tf120-status bad';b.disabled=false;busyReset=false}}
