@@ -2,11 +2,12 @@
 'use strict';
 if(window.__tfV13058AudioBoost)return;window.__tfV13058AudioBoost=true;
 
-/* V130.5.9 · Capa aislada de audio.
+/* V130.6 · Capa aislada de audio.
    - No modifica rutinas, búsqueda, perfil, datos ni diseño.
    - Acelera la descarga obligatoria usando descargas por rangos concurrentes cuando el servidor lo permite.
    - Mantiene un único flujo final para que V130.5.7 siga validando y guardando la música completa en IndexedDB.
-   - Pausa únicamente la música de TaskFlow mientras se reproduce un video y la reanuda al salir/terminar. */
+   - Pausa únicamente la música de TaskFlow mientras se reproduce un video dentro de TaskFlow.
+   - Al sacar TaskFlow de primer plano, pausa la música para evitar superposición con TikTok, Facebook, Instagram u otras apps de video; al volver, la reanuda desde el punto guardado. */
 
 const TRACKS=[
   {url:new URL('./audio/Las%20MEJORES%20Frases%20de%20MOTIVACI%C3%93N%20de%20SOLO%20LEVELING%20para%20Escuchar%20%F0%9F%94%A5%F0%9F%92%AF(MP3_160K).mp3',location.href).href,size:12698636},
@@ -17,7 +18,7 @@ const nativeFetch=window.fetch.bind(window);
 const nativePlay=HTMLMediaElement.prototype.play;
 const knownTaskFlowAudio=new Set();
 const activeVideos=new Set();
-let videoWatch=0,resumeAfterVideo=0;
+let videoWatch=0,resumeAfterVideo=0,externalPause=false;
 
 function absoluteUrl(input){
   try{return new URL(typeof input==='string'?input:(input&&input.url)||'',location.href).href}catch(_){return ''}
@@ -71,8 +72,6 @@ async function fastTrackResponse(track){
   const segmentSize=Math.ceil(total/parts);
   const firstEnd=Math.min(total-1,segmentSize-1);
 
-  /* El primer pedido también funciona como prueba de Range. Si Pages no admite
-     rangos, ese mismo response 200 ya contiene el archivo completo y se usa sin duplicarlo. */
   const first=await nativeFetch(track.url,fastInit({headers:{Range:'bytes=0-'+firstEnd}}));
   if(first.status!==206){return first}
 
@@ -98,7 +97,6 @@ async function fastTrackResponse(track){
   return new Response(stream,{status:200,statusText:'OK',headers:{'Content-Type':'audio/mpeg','Content-Length':String(total),'Cache-Control':'no-store','X-TaskFlow-Download':'parallel-range'}});
 }
 
-/* Solo intercepta los dos MP3 de TaskFlow. Todo el resto del sistema conserva fetch intacto. */
 window.fetch=function(input,init){
   const url=absoluteUrl(input);
   const track=TRACK_MAP.get(url);
@@ -137,7 +135,7 @@ function pauseTaskFlowMusic(){
 }
 function resumeTaskFlowMusic(){
   clearTimeout(resumeAfterVideo);
-  if(activeVideos.size||!musicIsEnabled()||(onlyInsideApp()&&document.hidden))return;
+  if(externalPause||document.hidden||activeVideos.size||!musicIsEnabled()||(onlyInsideApp()&&document.hidden))return;
   const index=savedMusicIndex();
   let target=null;
   for(const audio of knownTaskFlowAudio){
@@ -149,7 +147,7 @@ function resumeTaskFlowMusic(){
 }
 function scheduleVideoResume(delay){
   clearTimeout(resumeAfterVideo);
-  resumeAfterVideo=setTimeout(()=>{reconcileVideos();if(!activeVideos.size)resumeTaskFlowMusic()},Math.max(80,delay||180));
+  resumeAfterVideo=setTimeout(()=>{reconcileVideos();if(!activeVideos.size&&!externalPause&&!document.hidden)resumeTaskFlowMusic()},Math.max(80,delay||180));
 }
 function reconcileVideos(){
   for(const video of Array.from(activeVideos))if(!videoStillPresent(video))activeVideos.delete(video);
@@ -159,7 +157,7 @@ function startVideoWatch(){
   if(videoWatch)return;
   videoWatch=setInterval(()=>{
     const had=activeVideos.size;reconcileVideos();
-    if(had&&!activeVideos.size)resumeTaskFlowMusic();
+    if(had&&!activeVideos.size&&!externalPause&&!document.hidden)resumeTaskFlowMusic();
   },450);
 }
 function markVideoActive(video){
@@ -169,15 +167,22 @@ function markVideoActive(video){
 function releaseVideo(video,force){
   if(!(video instanceof HTMLVideoElement))return;
   if(force||!videoStillPresent(video))activeVideos.delete(video);
-  if(!activeVideos.size)scheduleVideoResume(160);
+  if(!activeVideos.size&&!externalPause&&!document.hidden)scheduleVideoResume(160);
+}
+function pauseForExternalMedia(){
+  externalPause=true;
+  pauseTaskFlowMusic();
+}
+function resumeFromExternalMedia(){
+  externalPause=false;
+  reconcileVideos();
+  if(!activeVideos.size&&!document.hidden)scheduleVideoResume(180);
 }
 
-/* Bloquea cualquier intento automático de reanudar la música mientras un video
-   está activo. No toca el audio del propio video. */
 HTMLMediaElement.prototype.play=function(){
   if(isTaskFlowMusic(this)){
     knownTaskFlowAudio.add(this);
-    if(activeVideos.size)return Promise.resolve();
+    if(activeVideos.size||externalPause||document.hidden)return Promise.resolve();
   }
   return nativePlay.apply(this,arguments);
 };
@@ -192,7 +197,12 @@ document.addEventListener('pause',event=>{
   const video=event.target;
   setTimeout(()=>releaseVideo(video,false),420);
 },true);
-document.addEventListener('fullscreenchange',()=>setTimeout(()=>{reconcileVideos();if(!activeVideos.size)resumeTaskFlowMusic()},120),true);
-document.addEventListener('webkitfullscreenchange',()=>setTimeout(()=>{reconcileVideos();if(!activeVideos.size)resumeTaskFlowMusic()},120),true);
-window.addEventListener('pageshow',()=>{reconcileVideos();if(!activeVideos.size)scheduleVideoResume(120)},false);
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden)pauseForExternalMedia();
+  else resumeFromExternalMedia();
+},true);
+window.addEventListener('pagehide',pauseForExternalMedia,false);
+window.addEventListener('pageshow',()=>{resumeFromExternalMedia()},false);
+document.addEventListener('fullscreenchange',()=>setTimeout(()=>{reconcileVideos();if(!activeVideos.size&&!externalPause&&!document.hidden)resumeTaskFlowMusic()},120),true);
+document.addEventListener('webkitfullscreenchange',()=>setTimeout(()=>{reconcileVideos();if(!activeVideos.size&&!externalPause&&!document.hidden)resumeTaskFlowMusic()},120),true);
 })();
