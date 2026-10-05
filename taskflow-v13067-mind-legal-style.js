@@ -33,19 +33,19 @@ function installStyle(){
   const s=document.createElement('style');
   s.id=STYLE_ID;
   s.textContent=`
-/* V130.6.7: solo Sócrates y Maquiavelo dentro de su ventana. */
+/* V130.7.4: Sócrates y Maquiavelo con el patrón visual de Sung Jin-Woo. */
 #windowContent.${ROOT_CLASS} .tf13067-mission{
   position:relative!important;
   display:grid!important;
-  grid-template-columns:52px minmax(0,1fr) 48px!important;
+  grid-template-columns:50px minmax(0,1fr) 44px!important;
   align-items:center!important;
-  column-gap:13px!important;
-  min-height:86px!important;
-  padding:12px 14px!important;
-  border:1px solid rgba(76,226,215,.20)!important;
+  column-gap:12px!important;
+  min-height:80px!important;
+  padding:10px 12px!important;
+  border:1px solid rgba(86,171,224,.18)!important;
   border-radius:18px!important;
-  background:linear-gradient(145deg,rgba(23,39,64,.97),rgba(16,27,49,.98))!important;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.025)!important;
+  background:radial-gradient(circle at 0% 50%,rgba(46,220,210,.055),transparent 34%),linear-gradient(145deg,rgba(12,25,39,.985),rgba(18,34,56,.985))!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.028),0 8px 20px rgba(0,0,0,.10)!important;
   overflow:visible!important;
 }
 #windowContent.${ROOT_CLASS} .tf13067-copy{
@@ -63,19 +63,19 @@ function installStyle(){
   grid-row:1!important;
   position:relative!important;
   left:auto!important;right:auto!important;top:auto!important;bottom:auto!important;
-  width:52px!important;
-  height:52px!important;
-  min-width:52px!important;
-  min-height:52px!important;
-  max-width:52px!important;
-  max-height:52px!important;
+  width:48px!important;
+  height:48px!important;
+  min-width:48px!important;
+  min-height:48px!important;
+  max-width:48px!important;
+  max-height:48px!important;
   margin:0!important;
   display:grid!important;
   place-items:center!important;
   border-radius:14px!important;
-  border:1px solid rgba(76,226,215,.14)!important;
-  background:linear-gradient(145deg,rgba(20,56,72,.92),rgba(20,34,58,.96))!important;
-  color:#55e5db!important;
+  border:1px solid rgba(65,214,207,.18)!important;
+  background:linear-gradient(145deg,rgba(14,55,68,.96),rgba(15,31,52,.98))!important;
+  color:#55e6dc!important;
   opacity:1!important;
   visibility:visible!important;
   filter:none!important;
@@ -112,9 +112,9 @@ function installStyle(){
   padding:0!important;
   display:grid!important;
   place-items:center!important;
-  border-radius:13px!important;
-  border:1px solid rgba(89,230,218,.22)!important;
-  background:rgba(24,49,67,.92)!important;
+  border-radius:12px!important;
+  border:1px solid rgba(75,220,210,.22)!important;
+  background:rgba(12,31,49,.96)!important;
   color:transparent!important;
   font-size:27px!important;
   line-height:1!important;
@@ -123,9 +123,9 @@ function installStyle(){
   -webkit-tap-highlight-color:transparent!important;
 }
 #windowContent.${ROOT_CLASS} .tf13067-check.tf13067-done{
-  background:#55d9cf!important;
-  border-color:#68eadf!important;
-  color:#071319!important;
+  background:linear-gradient(145deg,#61e9dd,#46cfd0)!important;
+  border-color:#70eee3!important;
+  color:#06151b!important;
   box-shadow:0 7px 18px rgba(41,215,201,.13),inset 0 1px 0 rgba(255,255,255,.25)!important;
 }
 #windowContent.${ROOT_CLASS} .tf13067-check:not(.tf13067-done)::before{
@@ -138,9 +138,9 @@ function installStyle(){
 #windowContent.${ROOT_CLASS} .tf13067-check.tf13067-done::before{content:'✓'}
 #windowContent.${ROOT_CLASS} .tf13067-check:active{transform:scale(.97)!important}
 @media(max-width:430px){
-  #windowContent.${ROOT_CLASS} .tf13067-mission{grid-template-columns:48px minmax(0,1fr) 46px!important;column-gap:11px!important;padding:11px 12px!important;min-height:82px!important}
-  #windowContent.${ROOT_CLASS} .tf13067-task-icon{width:48px!important;height:48px!important;min-width:48px!important;min-height:48px!important;max-width:48px!important;max-height:48px!important}
-  #windowContent.${ROOT_CLASS} .tf13067-check{width:46px!important;height:46px!important;min-width:46px!important;min-height:46px!important}
+  #windowContent.${ROOT_CLASS} .tf13067-mission{grid-template-columns:46px minmax(0,1fr) 42px!important;column-gap:10px!important;padding:10px 11px!important;min-height:82px!important}
+  #windowContent.${ROOT_CLASS} .tf13067-task-icon{width:46px!important;height:46px!important;min-width:46px!important;min-height:46px!important;max-width:46px!important;max-height:46px!important}
+  #windowContent.${ROOT_CLASS} .tf13067-check{width:42px!important;height:42px!important;min-width:42px!important;min-height:42px!important}
 }
 `;
   document.head.appendChild(s);
