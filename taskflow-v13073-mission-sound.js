@@ -102,12 +102,12 @@ function playWebAudio(){
     const gain=ctx.createGain();
     const compressor=ctx.createDynamicsCompressor();
     source.buffer=audioBuffer;
-    gain.gain.value=2.15;
-    compressor.threshold.value=-16;
-    compressor.knee.value=16;
-    compressor.ratio.value=3.5;
-    compressor.attack.value=.002;
-    compressor.release.value=.16;
+    gain.gain.value=3.0;
+    compressor.threshold.value=-20;
+    compressor.knee.value=12;
+    compressor.ratio.value=7;
+    compressor.attack.value=.001;
+    compressor.release.value=.12;
     source.connect(gain);gain.connect(compressor);compressor.connect(ctx.destination);
     source.start(0);
     return true;
