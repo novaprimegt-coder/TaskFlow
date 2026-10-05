@@ -2,11 +2,12 @@
 'use strict';
 if(window.__tfV13054Bridge)return;window.__tfV13054Bridge=true;
 
-/* V130.7.1 · Corrección localizada de audio.
+/* V130.7.2 · Corrección localizada de notificaciones.
    - Conserva exactamente la pista y la posición guardada antes de reproducir al volver a abrir TaskFlow.
    - Evita que un arranque en 0 sobrescriba una posición válida antes de restaurarla.
-   - Activa el sonido de misión completada ya existente.
-   - No modifica rutinas, progreso, búsqueda, perfil ni diseño. */
+   - Refuerza el sonido real al completar misiones, tareas y hábitos.
+   - Añade el aviso único "Conecta tus auriculares".
+   - No modifica rutinas, progreso, búsqueda, perfil ni diseño general. */
 function installAudioContinuityGuard(){
   if(window.__tfV13071AudioContinuity)return;window.__tfV13071AudioContinuity=true;
   const KEY='taskflow_sound_playback_v13057';
@@ -108,7 +109,7 @@ function installAudioContinuityGuard(){
 
 function addCss(){if(document.getElementById('tfV13051ProfileCss'))return;const l=document.createElement('link');l.id='tfV13051ProfileCss';l.rel='stylesheet';l.href='./taskflow-v13051-profile-compact.css?v=13051-20261004';document.head.appendChild(l)}
 function addScript(id,src){if(document.getElementById(id))return;const s=document.createElement('script');s.id=id;s.src=src;s.async=false;document.body.appendChild(s)}
-function boot(){addCss();addScript('tfV13051ProfileJs','./taskflow-v13051-profile-compact.js?v=13051-20261004');addScript('tfV13053SearchStabilityJs','./taskflow-v13053-search-stability.js?v=13053-20261004');addScript('tfV13053VisualPolishJs','./taskflow-v13053-visual-polish.js?v=13053-20261004');addScript('tfV13054SearchCompleteJs','./taskflow-v13054-search-complete.js?v=13054-20261004');addScript('tfV13062MentalistaSearchGuardJs','./taskflow-v13062-mentalista-search-guard.js?v=13062-20261005');addScript('tfV13063WelcomeJs','./taskflow-v13063-welcome.js?v=13063-20261005');addScript('tfV13064WelcomeEmphasisJs','./taskflow-v13064-welcome-emphasis.js?v=13064-20261005');addScript('tfV13065UiStabilityJs','./taskflow-v13065-ui-stability.js?v=13065-20261005');addScript('tfV13066MentalistStabilityJs','./taskflow-v13066-mentalist-stability.js?v=13066-20261005');addScript('tfV13067MindLegalStyleJs','./taskflow-v13067-mind-legal-style.js?v=13067-20261005');addScript('tfV13070MissionSoundJs','./taskflow-v13070-mission-sound.js?v=13070-20261005')}
+function boot(){addCss();addScript('tfV13051ProfileJs','./taskflow-v13051-profile-compact.js?v=13051-20261004');addScript('tfV13053SearchStabilityJs','./taskflow-v13053-search-stability.js?v=13053-20261004');addScript('tfV13053VisualPolishJs','./taskflow-v13053-visual-polish.js?v=13053-20261004');addScript('tfV13054SearchCompleteJs','./taskflow-v13054-search-complete.js?v=13054-20261004');addScript('tfV13062MentalistaSearchGuardJs','./taskflow-v13062-mentalista-search-guard.js?v=13062-20261005');addScript('tfV13063WelcomeJs','./taskflow-v13063-welcome.js?v=13063-20261005');addScript('tfV13064WelcomeEmphasisJs','./taskflow-v13064-welcome-emphasis.js?v=13064-20261005');addScript('tfV13065UiStabilityJs','./taskflow-v13065-ui-stability.js?v=13065-20261005');addScript('tfV13066MentalistStabilityJs','./taskflow-v13066-mentalist-stability.js?v=13066-20261005');addScript('tfV13067MindLegalStyleJs','./taskflow-v13067-mind-legal-style.js?v=13067-20261005');addScript('tfV13070MissionSoundJs','./taskflow-v13070-mission-sound.js?v=13072-20261005');addScript('tfV13072HeadphonesJs','./taskflow-v13072-headphones.js?v=13072-20261005')}
 
 installAudioContinuityGuard();
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
