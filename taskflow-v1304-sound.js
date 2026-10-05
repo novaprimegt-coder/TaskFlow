@@ -4,18 +4,19 @@ if(window.__tfV1304Sound)return;window.__tfV1304Sound=true;
 
 const STORAGE_KEY='taskflow_sound_enabled_v1304';
 const ONLY_APP_KEY='taskflow_sound_only_in_app_v1305';
-const PLAYBACK_KEY='taskflow_sound_playback_v13056';
-const DB_NAME='taskflow_audio_internal_v13056';
+const PLAYBACK_KEY='taskflow_sound_playback_v13057';
+const DB_NAME='taskflow_audio_internal_v13057';
 const DB_VERSION=1;
 const STORE_TRACKS='tracks';
 const STORE_META='meta';
 const META_PACK='audio_pack';
+const AUDIO_PACK_REV='20261004-r1';
 const CODE='SONIDO';
 const TRACKS=[
-  {id:'solo-leveling-motivacion',src:'./audio/Las%20MEJORES%20Frases%20de%20MOTIVACI%C3%93N%20de%20SOLO%20LEVELING%20para%20Escuchar%20%F0%9F%94%A5%F0%9F%92%AF(MP3_160K).mp3'},
-  {id:'anime-motivacion',src:'./audio/Las%20MEJORES%20Frases%20de%20MOTIVACI%C3%93N%20del%20ANIME%20para%20ESCUCHAR%20%F0%9F%94%A5%F0%9F%92%AF(MP3_160K).mp3'}
+  {id:'solo-leveling-motivacion',src:'./audio/Las%20MEJORES%20Frases%20de%20MOTIVACI%C3%93N%20de%20SOLO%20LEVELING%20para%20Escuchar%20%F0%9F%94%A5%F0%9F%92%AF(MP3_160K).mp3',expectedSize:12698636},
+  {id:'anime-motivacion',src:'./audio/Las%20MEJORES%20Frases%20de%20MOTIVACI%C3%93N%20del%20ANIME%20para%20ESCUCHAR%20%F0%9F%94%A5%F0%9F%92%AF(MP3_160K).mp3',expectedSize:14697486}
 ];
-const PACK_SIGNATURE=TRACKS.map(t=>t.id+'|'+t.src).join('||');
+const PACK_SIGNATURE=AUDIO_PACK_REV+'||'+TRACKS.map(t=>t.id+'|'+t.src+'|'+t.expectedSize).join('||');
 
 let enabled=true,onlyInApp=false,current=0,players=[],resumeTimer=0,saveTimer=0;
 let previousOverflow='',panel=null,toggle=null,statusText=null,onlyToggle=null,onlyStateText=null;
@@ -75,7 +76,7 @@ function installStyle(){
 .tf1304-x{width:42px;height:42px;flex:0 0 42px;border-radius:13px;border:1px solid rgba(255,255,255,.11);background:rgba(255,255,255,.045);color:#fff;font-size:27px;line-height:1;display:grid;place-items:center}.tf1304-body{padding:16px;display:grid;gap:11px}.tf1304-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:15px 14px;border:1px solid rgba(255,255,255,.075);border-radius:15px;background:rgba(255,255,255,.028)}
 .tf1304-row strong{display:block;font-size:13px}.tf1304-row small{display:block;margin-top:4px;color:#7e8da5;font-size:8.5px;line-height:1.45}.tf1304-row input{position:absolute;opacity:0;pointer-events:none}.tf1304-sw{width:50px;height:28px;border-radius:99px;background:#263247;position:relative;flex:0 0 50px}.tf1304-sw:after{content:"";position:absolute;width:22px;height:22px;left:3px;top:3px;border-radius:50%;background:#8998ad;transition:.18s}.tf1304-row input:checked+.tf1304-sw{background:rgba(50,221,201,.31)}.tf1304-row input:checked+.tf1304-sw:after{left:25px;background:#55e5d7;box-shadow:0 0 12px rgba(79,226,213,.32)}
 .tf1304-state{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 13px;border-radius:13px;background:rgba(139,99,255,.055);border:1px solid rgba(139,99,255,.12);font-size:9px;color:#8f9db3}.tf1304-state b{color:#55e1d3;font-size:9px;letter-spacing:.08em}.tf1304-state b.off{color:#ff9ca7}
-#tfAudioGateV13056{position:fixed;inset:0;z-index:2147483646;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(2,6,16,.96);backdrop-filter:blur(12px)}#tfAudioGateV13056.open{display:flex}.tf-audio-gate-card{width:min(500px,100%);border-radius:24px;padding:24px;border:1px solid rgba(76,224,211,.3);background:linear-gradient(155deg,#101d34,#080f1d 62%,#060b14);box-shadow:0 30px 90px rgba(0,0,0,.7);text-align:center}.tf-audio-gate-card h2{margin:0 0 8px;font-size:23px}.tf-audio-gate-card p{margin:0;color:#9cabc0;font-size:12px;line-height:1.55}.tf-audio-gate-bar{height:8px;margin:20px 0 10px;border-radius:99px;background:#142036;overflow:hidden}.tf-audio-gate-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#45e1d2,#6be8c6,#9c78ff);transition:width .25s ease}.tf-audio-gate-status{font-size:11px;color:#c8d2e2}.tf-audio-gate-retry{display:none;margin:18px auto 0;padding:11px 18px;border-radius:12px;border:1px solid rgba(85,225,211,.3);background:#12303a;color:#66e8db;font-weight:850}.tf-audio-gate-retry.show{display:inline-flex}
+#tfAudioGateV13057{position:fixed;inset:0;z-index:2147483646;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(2,6,16,.96);backdrop-filter:blur(12px)}#tfAudioGateV13057.open{display:flex}.tf-audio-gate-card{width:min(500px,100%);border-radius:24px;padding:24px;border:1px solid rgba(76,224,211,.3);background:linear-gradient(155deg,#101d34,#080f1d 62%,#060b14);box-shadow:0 30px 90px rgba(0,0,0,.7);text-align:center}.tf-audio-gate-card h2{margin:0 0 8px;font-size:23px}.tf-audio-gate-card p{margin:0;color:#9cabc0;font-size:12px;line-height:1.55}.tf-audio-gate-bar{height:8px;margin:20px 0 10px;border-radius:99px;background:#142036;overflow:hidden}.tf-audio-gate-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#45e1d2,#6be8c6,#9c78ff);transition:width .25s ease}.tf-audio-gate-status{font-size:11px;color:#c8d2e2}.tf-audio-gate-retry{display:none;margin:18px auto 0;padding:11px 18px;border-radius:12px;border:1px solid rgba(85,225,211,.3);background:#12303a;color:#66e8db;font-weight:850}.tf-audio-gate-retry.show{display:inline-flex}
 @media(max-width:430px){#tfSoundV1304{padding:12px}.tf1304-head{padding:16px 15px 13px}.tf1304-body{padding:13px}.tf1304-head h2{font-size:22px}.tf-audio-gate-card{padding:21px 18px}}
 `;
   document.head.appendChild(style);
@@ -89,8 +90,8 @@ function buildPanel(){
 }
 function buildDownloadGate(){
   if(downloadGate)return;
-  downloadGate=document.createElement('div');downloadGate.id='tfAudioGateV13056';
-  downloadGate.innerHTML=`<section class="tf-audio-gate-card" role="dialog" aria-modal="true"><h2>Preparando música de TaskFlow</h2><p>La música se guardará dentro del sistema para reproducirse sin depender de una conexión rápida. Esta descarga es obligatoria cuando es la primera vez o cuando hay música nueva.</p><div class="tf-audio-gate-bar"><i></i></div><div class="tf-audio-gate-status">Comprobando archivos internos…</div><button type="button" class="tf-audio-gate-retry">Reintentar descarga</button></section>`;
+  downloadGate=document.createElement('div');downloadGate.id='tfAudioGateV13057';
+  downloadGate.innerHTML=`<section class="tf-audio-gate-card" role="dialog" aria-modal="true"><h2>Descargando música obligatoria</h2><p>TaskFlow guardará toda la música dentro del sistema antes de reproducirla. No se reproducirá desde Internet. Este proceso se repite únicamente cuando falte un archivo o exista música nueva.</p><div class="tf-audio-gate-bar"><i></i></div><div class="tf-audio-gate-status">Verificando música interna…</div><button type="button" class="tf-audio-gate-retry">Reintentar descarga</button></section>`;
   document.body.appendChild(downloadGate);downloadStatus=downloadGate.querySelector('.tf-audio-gate-status');downloadBar=downloadGate.querySelector('.tf-audio-gate-bar i');downloadRetry=downloadGate.querySelector('.tf-audio-gate-retry');downloadRetry.addEventListener('click',()=>syncAudioPack(true));
 }
 function showGate(text){buildDownloadGate();downloadGate.classList.add('open');if(text)downloadStatus.textContent=text;downloadRetry.classList.remove('show')}
@@ -98,21 +99,39 @@ function hideGate(){if(downloadGate)downloadGate.classList.remove('open')}
 function gateProgress(done,total,label){if(!downloadGate)return;downloadBar.style.width=Math.max(0,Math.min(100,Math.round(done/Math.max(1,total)*100)))+'%';downloadStatus.textContent=label||('Música '+done+' de '+total+' preparada')}
 
 async function requestPersistentStorage(){try{if(navigator.storage&&navigator.storage.persist)await navigator.storage.persist()}catch(_){}}
+async function ensureStorageCapacity(){
+  try{
+    if(!navigator.storage||!navigator.storage.estimate)return;
+    const estimate=await navigator.storage.estimate();
+    const required=TRACKS.reduce((sum,t)=>sum+t.expectedSize,0)+8*1024*1024;
+    const available=(Number(estimate.quota)||0)-(Number(estimate.usage)||0);
+    if(available>0&&available<required)throw new Error('No hay suficiente espacio interno para guardar toda la música.');
+  }catch(err){if(err&&String(err.message||'').includes('suficiente espacio'))throw err}
+}
 async function fetchTrackBlob(track,onProgress){
   const response=await fetch(track.src,{cache:'no-store',credentials:'same-origin'});
   if(!response.ok)throw new Error('No se pudo descargar la música ('+response.status+').');
-  const total=Number(response.headers.get('content-length'))||0;
+  const headerSize=Number(response.headers.get('content-length'))||0;
+  if(headerSize&&headerSize!==track.expectedSize)throw new Error('El archivo de música cambió o llegó incompleto.');
+  let blob;
   if(response.body&&response.body.getReader){
     const reader=response.body.getReader();const chunks=[];let received=0;
-    while(true){const part=await reader.read();if(part.done)break;chunks.push(part.value);received+=part.value.byteLength;if(onProgress)onProgress(received,total)}
-    const blob=new Blob(chunks,{type:response.headers.get('content-type')||'audio/mpeg'});if(!blob.size)throw new Error('El archivo de música llegó vacío.');return blob;
+    while(true){const part=await reader.read();if(part.done)break;chunks.push(part.value);received+=part.value.byteLength;if(onProgress)onProgress(received,track.expectedSize)}
+    blob=new Blob(chunks,{type:response.headers.get('content-type')||'audio/mpeg'});
+  }else{
+    blob=await response.blob();if(onProgress)onProgress(blob.size,track.expectedSize);
   }
-  const blob=await response.blob();if(!blob.size)throw new Error('El archivo de música llegó vacío.');if(onProgress)onProgress(blob.size,total||blob.size);return blob;
+  if(!(blob instanceof Blob)||blob.size!==track.expectedSize)throw new Error('La descarga de música no terminó completa. Se volverá a intentar.');
+  return blob;
 }
+function trackSignature(track){return AUDIO_PACK_REV+'|'+track.id+'|'+track.src+'|'+track.expectedSize}
 async function validateStoredPack(db){
   const meta=await idbGet(db,STORE_META,META_PACK);
   const missing=[];
-  for(const track of TRACKS){const row=await idbGet(db,STORE_TRACKS,track.id);if(!row||row.signature!==track.src||!(row.blob instanceof Blob)||!row.blob.size)missing.push(track)}
+  for(const track of TRACKS){
+    const row=await idbGet(db,STORE_TRACKS,track.id);
+    if(!row||row.signature!==trackSignature(track)||!(row.blob instanceof Blob)||row.blob.size!==track.expectedSize||row.size!==track.expectedSize)missing.push(track);
+  }
   const signatureOk=!!(meta&&meta.signature===PACK_SIGNATURE);
   return {complete:signatureOk&&missing.length===0,missing,meta};
 }
@@ -121,34 +140,33 @@ async function cleanupRemovedTracks(db){
   return new Promise((resolve)=>{try{const tx=db.transaction(STORE_TRACKS,'readwrite');const store=tx.objectStore(STORE_TRACKS);const req=store.openCursor();req.onsuccess=()=>{const cursor=req.result;if(!cursor)return;if(!valid.has(cursor.key))cursor.delete();cursor.continue()};tx.oncomplete=()=>resolve();tx.onerror=()=>resolve()}catch(_){resolve()}})
 }
 async function syncAudioPack(force=false){
-  if(downloadRunning)return;downloadRunning=true;audioReady=false;stopSound();showGate('Comprobando música guardada…');gateProgress(0,TRACKS.length,'Comprobando música guardada…');
+  if(downloadRunning)return;downloadRunning=true;audioReady=false;stopSound();showGate('Verificando música interna…');gateProgress(0,TRACKS.length,'Verificando música interna…');
   let db;
   try{
-    await requestPersistentStorage();db=await openDb();const state=await validateStoredPack(db);
+    await requestPersistentStorage();await ensureStorageCapacity();db=await openDb();const state=await validateStoredPack(db);
     if(state.complete&&!force){await loadPlayersFromDb(db);audioReady=true;gateProgress(TRACKS.length,TRACKS.length,'Música interna lista');hideGate();if(canPlayNow())startPlayback();return}
     const targets=force?TRACKS:state.missing;
     let completed=TRACKS.length-targets.length;
     for(const track of targets){
-      const index=TRACKS.findIndex(t=>t.id===track.id);
-      let lastPct=0;
-      const blob=await fetchTrackBlob(track,(received,total)=>{if(!total)return;const pct=Math.floor(received/total*100);if(pct===lastPct)return;lastPct=pct;const overall=(completed+(pct/100));gateProgress(overall,TRACKS.length,'Descargando música '+(index+1)+' de '+TRACKS.length+' · '+pct+'%')});
-      await idbPut(db,STORE_TRACKS,{id:track.id,signature:track.src,blob,size:blob.size,updatedAt:Date.now()});completed++;gateProgress(completed,TRACKS.length,'Música '+completed+' de '+TRACKS.length+' guardada internamente');
+      const index=TRACKS.findIndex(t=>t.id===track.id);let lastPct=-1;
+      const blob=await fetchTrackBlob(track,(received,total)=>{const pct=Math.max(0,Math.min(100,Math.floor(received/Math.max(1,total)*100)));if(pct===lastPct)return;lastPct=pct;gateProgress(completed+(pct/100),TRACKS.length,'Descargando música '+(index+1)+' de '+TRACKS.length+' · '+pct+'%')});
+      await idbPut(db,STORE_TRACKS,{id:track.id,signature:trackSignature(track),blob,size:blob.size,updatedAt:Date.now()});completed++;gateProgress(completed,TRACKS.length,'Música '+completed+' de '+TRACKS.length+' guardada internamente');
     }
-    await cleanupRemovedTracks(db);await idbPut(db,STORE_META,{key:META_PACK,signature:PACK_SIGNATURE,tracks:TRACKS.map(t=>t.id),updatedAt:Date.now()});
+    await cleanupRemovedTracks(db);await idbPut(db,STORE_META,{key:META_PACK,signature:PACK_SIGNATURE,revision:AUDIO_PACK_REV,tracks:TRACKS.map(t=>({id:t.id,size:t.expectedSize,src:t.src})),updatedAt:Date.now()});
     const verify=await validateStoredPack(db);if(!verify.complete)throw new Error('La verificación interna de la música no se completó.');
-    await loadPlayersFromDb(db);audioReady=true;gateProgress(TRACKS.length,TRACKS.length,'Música interna lista');setTimeout(hideGate,250);if(canPlayNow())startPlayback();
-  }catch(err){console.error('TaskFlow audio interno:',err);audioReady=false;showGate('La música debe descargarse antes de reproducirse. '+(err&&err.message?err.message:''));if(downloadRetry)downloadRetry.classList.add('show')}
+    await loadPlayersFromDb(db);audioReady=true;gateProgress(TRACKS.length,TRACKS.length,'Música descargada y verificada al 100%');setTimeout(hideGate,250);if(canPlayNow())startPlayback();
+  }catch(err){console.error('TaskFlow audio interno:',err);audioReady=false;showGate('La música debe quedar descargada completamente antes de usar TaskFlow. '+(err&&err.message?err.message:''));if(downloadRetry)downloadRetry.classList.add('show')}
   finally{try{if(db)db.close()}catch(_){}downloadRunning=false}
 }
 async function loadPlayersFromDb(db){
   objectUrls.forEach(url=>{if(url)try{URL.revokeObjectURL(url)}catch(_){}});objectUrls=new Array(TRACKS.length).fill(null);
   const savedTime=readPlayback();
   for(let i=0;i<TRACKS.length;i++){
-    const row=await idbGet(db,STORE_TRACKS,TRACKS[i].id);if(!row||!(row.blob instanceof Blob)||!row.blob.size)throw new Error('Falta música interna '+(i+1)+'.');
+    const row=await idbGet(db,STORE_TRACKS,TRACKS[i].id);if(!row||!(row.blob instanceof Blob)||row.blob.size!==TRACKS[i].expectedSize)throw new Error('Falta música interna '+(i+1)+'.');
     objectUrls[i]=URL.createObjectURL(row.blob);const audio=players[i];audio.src=objectUrls[i];audio.preload='auto';audio.load();
     if(i===current&&savedTime>0){const restore=()=>{try{if(!Number.isFinite(audio.duration)||savedTime<audio.duration)audio.currentTime=savedTime}catch(_){}};if(audio.readyState>=1)restore();else audio.addEventListener('loadedmetadata',restore,{once:true})}
   }
-  await Promise.all(players.map(audio=>new Promise(resolve=>{if(audio.readyState>=3){resolve();return}const done=()=>resolve();audio.addEventListener('canplay',done,{once:true});setTimeout(done,4500)})));
+  await Promise.all(players.map(audio=>new Promise(resolve=>{if(audio.readyState>=3){resolve();return}const done=()=>resolve();audio.addEventListener('canplaythrough',done,{once:true});audio.addEventListener('canplay',done,{once:true});setTimeout(done,5000)})));
 }
 
 function scheduleResume(delay){if(!canPlayNow())return;clearTimeout(resumeTimer);resumeTimer=setTimeout(()=>{if(canPlayNow())ensurePlaying()},Math.max(0,delay||0))}
