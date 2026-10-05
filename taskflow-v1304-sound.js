@@ -14,7 +14,12 @@ const AUDIO_PACK_REV='20261004-r1';
 const CODE='SONIDO';
 const TRACKS=[
   {id:'solo-leveling-motivacion',src:'./audio/Las%20MEJORES%20Frases%20de%20MOTIVACI%C3%93N%20de%20SOLO%20LEVELING%20para%20Escuchar%20%F0%9F%94%A5%F0%9F%92%AF(MP3_160K).mp3',expectedSize:12698636},
-  {id:'anime-motivacion',src:'./audio/Las%20MEJORES%20Frases%20de%20MOTIVACI%C3%93N%20del%20ANIME%20para%20ESCUCHAR%20%F0%9F%94%A5%F0%9F%92%AF(MP3_160K).mp3',expectedSize:14697486}
+  {id:'anime-motivacion',src:'./audio/Las%20MEJORES%20Frases%20de%20MOTIVACI%C3%93N%20del%20ANIME%20para%20ESCUCHAR%20%F0%9F%94%A5%F0%9F%92%AF(MP3_160K).mp3',expectedSize:14697486},
+  {id:'frio-mente-cuerpo',src:'./audio/El%20fr%C3%ADo%20te%20va%20a%20pegar_%20tu%20mente%20te%20va%20a%20mentir_%20pero%20tu%20cuerpo%20va%20a%20poder.%20_marpe%20_elcambioeshoy%20_mentalidad%20_disciplina%20_real%20(MP3).mp3',expectedSize:1024270},
+  {id:'motivacionarios',src:'./audio/_motivacionarios(MP3).mp3',expectedSize:918090},
+  {id:'motivacion-diaria-sueno-americano',src:'./audio/_motivaciondiaria%20_suenoamericano%F0%9F%87%B2%F0%9F%87%BD%F0%9F%87%BA%F0%9F%87%B2%20_suenoamericano%F0%9F%87%B2%F0%9F%87%BD%F0%9F%87%BA%F0%9F%87%B2%20_paratiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii(MP3).mp3',expectedSize:858267},
+  {id:'reflexion-motivation-disciplina',src:'./audio/_reflexion%20_motivation%20_diciplina(MP3).mp3',expectedSize:1112441},
+  {id:'tai-long-suenos',src:'./audio/_%C2%A1%C2%BFNO%20FUE%20CULPA%20TUYA__%20%C2%BFQUI%C3%89N%20LLENO%20DE%20SUE%C3%91OS%20MI%20CABEZA__%F0%9F%92%94%20_%20EDIT%20TAI%20LONG%20_%20KAMIN%20_%20_shorts_edit(MP3).mp3',expectedSize:1884742}
 ];
 const PACK_SIGNATURE=AUDIO_PACK_REV+'||'+TRACKS.map(t=>t.id+'|'+t.src+'|'+t.expectedSize).join('||');
 
