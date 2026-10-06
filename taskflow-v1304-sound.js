@@ -23,7 +23,7 @@ const TRACKS=[
 ];
 const PACK_SIGNATURE=AUDIO_PACK_REV+'||'+TRACKS.map(t=>t.id+'|'+t.src+'|'+t.expectedSize).join('||');
 
-let enabled=true,onlyInApp=false,current=0,players=[],resumeTimer=0,saveTimer=0;
+let enabled=true,onlyInApp=true,current=0,players=[],resumeTimer=0,saveTimer=0;
 let previousOverflow='',panel=null,toggle=null,statusText=null,onlyToggle=null,onlyStateText=null;
 let objectUrls=new Array(TRACKS.length).fill(null);
 let audioReady=false,downloadRunning=false,downloadGate=null,downloadStatus=null,downloadBar=null,downloadRetry=null;
@@ -31,7 +31,7 @@ let audioReady=false,downloadRunning=false,downloadGate=null,downloadStatus=null
 function norm(value){return String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/\s+/g,' ').trim()}
 function readEnabled(){try{const value=localStorage.getItem(STORAGE_KEY);return value===null?true:value!=='0'}catch(_){return true}}
 function writeEnabled(value){try{localStorage.setItem(STORAGE_KEY,value?'1':'0')}catch(_){}}
-function readOnlyInApp(){try{return localStorage.getItem(ONLY_APP_KEY)==='1'}catch(_){return false}}
+function readOnlyInApp(){try{const value=localStorage.getItem(ONLY_APP_KEY);return value===null?true:value==='1'}catch(_){return true}}
 function writeOnlyInApp(value){try{localStorage.setItem(ONLY_APP_KEY,value?'1':'0')}catch(_){}}
 function canPlayNow(){return enabled&&audioReady&&(!onlyInApp||!document.hidden)}
 function enforceVolume(audio){if(!audio)return;try{audio.volume=.70;audio.muted=false}catch(_){}}
