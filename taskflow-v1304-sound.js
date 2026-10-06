@@ -31,6 +31,8 @@ let previousOverflow='',panel=null,toggle=null,statusText=null,onlyToggle=null,o
 let objectUrls=new Array(TRACKS.length).fill(null);
 let audioReady=false,downloadRunning=false,downloadGate=null,downloadStatus=null,downloadBar=null,downloadRetry=null;
 let transitionPrimeBusy=new Set();
+let transitionHandoffBusy=false;
+const BACKGROUND_HANDOFF_LEAD=.38;
 
 function norm(value){return String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/\s+/g,' ').trim()}
 function readEnabled(){try{const value=localStorage.getItem(STORAGE_KEY);return value===null?true:value!=='0'}catch(_){return true}}
@@ -163,7 +165,7 @@ async function syncAudioPack(force=false){
     }
     await cleanupRemovedTracks(db);await idbPut(db,STORE_META,{key:META_PACK,signature:PACK_SIGNATURE,revision:AUDIO_PACK_REV,tracks:TRACKS.map(t=>({id:t.id,size:t.expectedSize,src:t.src})),updatedAt:Date.now()});
     const verify=await validateStoredPack(db);if(!verify.complete)throw new Error('La verificación interna de la música no se completó.');
-    await loadPlayersFromDb(db);audioReady=true;gateProgress(TRACKS.length,TRACKS.length,'Música descargada y verificada al 100%');setTimeout(hideGate,250);if(canPlayNow())startPlayback();
+    await loadPlayersFromDb(db);audioReady=true;warmTransitionPool(current);gateProgress(TRACKS.length,TRACKS.length,'Música descargada y verificada al 100%');setTimeout(hideGate,250);if(canPlayNow())startPlayback();
   }catch(err){console.error('TaskFlow audio interno:',err);audioReady=false;showGate('La música debe quedar descargada completamente antes de usar TaskFlow. '+(err&&err.message?err.message:''));if(downloadRetry)downloadRetry.classList.add('show')}
   finally{try{if(db)db.close()}catch(_){}downloadRunning=false}
 }
@@ -228,6 +230,46 @@ function prepareFollowingTrack(from){
   preloadNextTrack(from);
   void primeNextTrack(from);
 }
+function warmTransitionPool(from){
+  if(!enabled||!players.length||(onlyInApp&&document.hidden))return;
+  const base=((Number(from)||0)%players.length+players.length)%players.length;
+  const count=Math.min(players.length-1,3);
+  for(let offset=0;offset<count;offset++){
+    const seed=(base+offset)%players.length;
+    preloadNextTrack(seed);
+    void primeNextTrack(seed);
+  }
+}
+async function backgroundSeamlessHandoff(from){
+  if(transitionHandoffBusy||onlyInApp||!document.hidden||!canPlayNow()||from!==current||players.length<2)return false;
+  const outgoing=players[from];
+  if(!outgoing||!Number.isFinite(outgoing.duration)||outgoing.duration<=0)return false;
+  const remaining=outgoing.duration-outgoing.currentTime;
+  if(!Number.isFinite(remaining)||remaining<0||remaining>BACKGROUND_HANDOFF_LEAD)return false;
+  const nextIndex=nextTrackIndex(from),next=players[nextIndex];
+  if(!next||!next.src)return false;
+  if(next.readyState<2){
+    prepareFollowingTrack(from);
+    return false;
+  }
+  transitionHandoffBusy=true;
+  try{
+    enforceVolume(next);
+    try{if(next.currentTime>.08||next.ended)next.currentTime=0}catch(_){}
+    const p=next.play();
+    if(p&&typeof p.then==='function')await p;
+    current=nextIndex;
+    try{outgoing.dataset.tf13081HandedOff='1'}catch(_){}
+    try{localStorage.setItem(PLAYBACK_KEY,JSON.stringify({index:current,time:Number(next.currentTime)||0,at:Date.now()}))}catch(_){}
+    setPlaybackState('playing');
+    warmTransitionPool(current);
+    return true;
+  }catch(_){
+    return false;
+  }finally{
+    setTimeout(()=>{transitionHandoffBusy=false},850);
+  }
+}
 
 function scheduleResume(delay){if(!canPlayNow())return;clearTimeout(resumeTimer);resumeTimer=setTimeout(()=>{if(canPlayNow())ensurePlaying()},Math.max(0,delay||0))}
 async function playIndex(index){
@@ -256,12 +298,14 @@ function setOnlyInApp(value,persist=true){onlyInApp=!!value;if(persist)writeOnly
 function createPlayer(index){
   const audio=new Audio();audio.preload='auto';audio.autoplay=false;audio.loop=false;audio.controls=false;audio.playsInline=true;audio.setAttribute('playsinline','');audio.setAttribute('webkit-playsinline','');audio.setAttribute('data-taskflow-sound',String(index));enforceVolume(audio);
   audio.addEventListener('ended',()=>advance(index));
-  audio.addEventListener('playing',()=>{if(index===current)prepareFollowingTrack(index)});
+  audio.addEventListener('playing',()=>{if(index===current){prepareFollowingTrack(index);warmTransitionPool(index)}});
   audio.addEventListener('timeupdate',()=>{
     if(index!==current||audio.paused||!Number.isFinite(audio.duration)||audio.duration<=0)return;
     const remaining=audio.duration-audio.currentTime;
     if(remaining<=25)preloadNextTrack(index);
-    if(remaining<=8)void primeNextTrack(index);
+    if(remaining<=12)void primeNextTrack(index);
+    if(remaining<=6)warmTransitionPool(index);
+    if(remaining<=BACKGROUND_HANDOFF_LEAD&&!onlyInApp&&document.hidden)void backgroundSeamlessHandoff(index);
   });
   audio.addEventListener('pause',()=>{if(canPlayNow()&&index===current&&!audio.ended)scheduleResume(500)});
   audio.addEventListener('volumechange',()=>{if(enabled&&audio.dataset.tf13080SilentPrime!=='1')enforceVolume(audio)});
@@ -276,7 +320,7 @@ function openPanel(){if(!panel)buildPanel();previousOverflow=document.body.style
 function closePanel(){if(!panel)return;panel.classList.remove('open');panel.setAttribute('aria-hidden','true');document.body.style.overflow=previousOverflow}
 function bindSearch(){document.addEventListener('taskflow:search-submit',event=>{const query=event&&event.detail&&event.detail.query;if(norm(query)!==CODE)return;openPanel()})}
 function bindRecovery(){
-  document.addEventListener('visibilitychange',()=>{if(onlyInApp&&document.hidden){stopSound();return}if(canPlayNow())scheduleResume(0)},false);
+  document.addEventListener('visibilitychange',()=>{if(onlyInApp&&document.hidden){stopSound();return}if(canPlayNow()){if(document.hidden)warmTransitionPool(current);scheduleResume(0)}},false);
   const recover=()=>{if(canPlayNow())scheduleResume(0)};window.addEventListener('pageshow',recover,false);window.addEventListener('focus',recover,false);
   ['pointerdown','touchstart','click','keydown'].forEach(type=>document.addEventListener(type,()=>{if(canPlayNow()&&players[current]&&players[current].paused)startPlayback()},{capture:true,passive:true}));
   saveTimer=setInterval(()=>{if(audioReady)savePlayback()},5000);
