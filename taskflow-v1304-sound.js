@@ -22,7 +22,7 @@ const TRACKS=[
   {id:'tai-long-suenos',src:'./audio/_%C2%A1%C2%BFNO%20FUE%20CULPA%20TUYA__%20%C2%BFQUI%C3%89N%20LLENO%20DE%20SUE%C3%91OS%20MI%20CABEZA__%F0%9F%92%94%20_%20EDIT%20TAI%20LONG%20_%20KAMIN%20_%20_shorts_edit(MP3).mp3',expectedSize:1884742}
 ];
 const PACK_SIGNATURE=AUDIO_PACK_REV+'||'+TRACKS.map(t=>t.id+'|'+t.src+'|'+t.expectedSize).join('||');
-/* V130.8.0 · Conserva una referencia al play disponible antes de las capas posteriores.
+/* V130.8.2 · Refuerzo de transición en segundo plano. Conserva una referencia al play disponible antes de las capas posteriores.
    Se usa exclusivamente para preparar silenciosamente la siguiente pista. */
 const TRANSITION_PRIME_PLAY=HTMLMediaElement.prototype.play;
 
@@ -32,7 +32,9 @@ let objectUrls=new Array(TRACKS.length).fill(null);
 let audioReady=false,downloadRunning=false,downloadGate=null,downloadStatus=null,downloadBar=null,downloadRetry=null;
 let transitionPrimeBusy=new Set();
 let transitionHandoffBusy=false;
-const BACKGROUND_HANDOFF_LEAD=.38;
+let transitionGeneration=0;
+const BACKGROUND_HANDOFF_LEAD=.22;
+const TRANSITION_SAVE_DELAY=120;
 
 function norm(value){return String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/\s+/g,' ').trim()}
 function readEnabled(){try{const value=localStorage.getItem(STORAGE_KEY);return value===null?true:value!=='0'}catch(_){return true}}
@@ -155,7 +157,7 @@ async function syncAudioPack(force=false){
   let db;
   try{
     await requestPersistentStorage();await ensureStorageCapacity();db=await openDb();const state=await validateStoredPack(db);
-    if(state.complete&&!force){await loadPlayersFromDb(db);audioReady=true;gateProgress(TRACKS.length,TRACKS.length,'Música interna lista');hideGate();if(canPlayNow())startPlayback();return}
+    if(state.complete&&!force){await loadPlayersFromDb(db);audioReady=true;hardWarmAllTracks();gateProgress(TRACKS.length,TRACKS.length,'Música interna lista');hideGate();if(canPlayNow())startPlayback();return}
     const targets=force?TRACKS:state.missing;
     let completed=TRACKS.length-targets.length;
     for(const track of targets){
@@ -165,7 +167,7 @@ async function syncAudioPack(force=false){
     }
     await cleanupRemovedTracks(db);await idbPut(db,STORE_META,{key:META_PACK,signature:PACK_SIGNATURE,revision:AUDIO_PACK_REV,tracks:TRACKS.map(t=>({id:t.id,size:t.expectedSize,src:t.src})),updatedAt:Date.now()});
     const verify=await validateStoredPack(db);if(!verify.complete)throw new Error('La verificación interna de la música no se completó.');
-    await loadPlayersFromDb(db);audioReady=true;warmTransitionPool(current);gateProgress(TRACKS.length,TRACKS.length,'Música descargada y verificada al 100%');setTimeout(hideGate,250);if(canPlayNow())startPlayback();
+    await loadPlayersFromDb(db);audioReady=true;hardWarmAllTracks();gateProgress(TRACKS.length,TRACKS.length,'Música descargada y verificada al 100%');setTimeout(hideGate,250);if(canPlayNow())startPlayback();
   }catch(err){console.error('TaskFlow audio interno:',err);audioReady=false;showGate('La música debe quedar descargada completamente antes de usar TaskFlow. '+(err&&err.message?err.message:''));if(downloadRetry)downloadRetry.classList.add('show')}
   finally{try{if(db)db.close()}catch(_){}downloadRunning=false}
 }
@@ -233,12 +235,23 @@ function prepareFollowingTrack(from){
 function warmTransitionPool(from){
   if(!enabled||!players.length||(onlyInApp&&document.hidden))return;
   const base=((Number(from)||0)%players.length+players.length)%players.length;
-  const count=Math.min(players.length-1,3);
-  for(let offset=0;offset<count;offset++){
+  for(let offset=0;offset<players.length-1;offset++){
     const seed=(base+offset)%players.length;
     preloadNextTrack(seed);
     void primeNextTrack(seed);
   }
+}
+function hardWarmAllTracks(){
+  if(!enabled||!players.length||(onlyInApp&&document.hidden))return;
+  for(let i=0;i<players.length;i++){
+    const audio=players[i];
+    if(!audio||!audio.src)continue;
+    try{
+      audio.preload='auto';
+      if(audio.readyState<3)audio.load();
+    }catch(_){}
+  }
+  warmTransitionPool(current);
 }
 async function backgroundSeamlessHandoff(from){
   if(transitionHandoffBusy||onlyInApp||!document.hidden||!canPlayNow()||from!==current||players.length<2)return false;
@@ -290,7 +303,34 @@ async function playIndex(index){
   }
 }
 async function startPlayback(){if(!canPlayNow())return false;return playIndex(current)}
-async function advance(from){if(!canPlayNow()||from!==current)return;savePlayback();try{players[from].currentTime=0}catch(_){}current=(from+1)%players.length;try{localStorage.setItem(PLAYBACK_KEY,JSON.stringify({index:current,time:0,at:Date.now()}))}catch(_){}await playIndex(current)}
+async function advance(from){
+  if(!canPlayNow()||from!==current||!players.length)return;
+  const outgoing=players[from];
+  const nextIndex=nextTrackIndex(from);
+  const next=players[nextIndex];
+  if(!next)return;
+  const generation=++transitionGeneration;
+  delete next.dataset.tf13080Primed;
+  enforceVolume(next);
+  try{if(next.ended||next.currentTime>.12)next.currentTime=0}catch(_){}
+  try{
+    const p=next.play();
+    current=nextIndex;
+    setPlaybackState('playing');
+    if(p&&typeof p.then==='function')await p;
+    if(generation!==transitionGeneration)return;
+    prepareFollowingTrack(current);
+    hardWarmAllTracks();
+    setTimeout(()=>{
+      if(generation!==transitionGeneration)return;
+      try{if(outgoing){outgoing.pause();outgoing.currentTime=0}}catch(_){}
+      try{localStorage.setItem(PLAYBACK_KEY,JSON.stringify({index:current,time:Number(next.currentTime)||0,at:Date.now()}))}catch(_){}
+    },TRANSITION_SAVE_DELAY);
+  }catch(_){
+    current=nextIndex;
+    scheduleResume(120);
+  }
+}
 function ensurePlaying(){if(!canPlayNow()||!players.length)return;const audio=players[current];enforceVolume(audio);if(audio.ended){advance(current);return}if(audio.paused)startPlayback();else setPlaybackState('playing')}
 function stopSound(){clearTimeout(resumeTimer);savePlayback();players.forEach(audio=>{try{audio.pause()}catch(_){}});setPlaybackState('paused')}
 function setEnabled(value,persist=true){enabled=!!value;if(persist)writeEnabled(enabled);updatePanel();if(canPlayNow())startPlayback();else stopSound()}
@@ -298,13 +338,13 @@ function setOnlyInApp(value,persist=true){onlyInApp=!!value;if(persist)writeOnly
 function createPlayer(index){
   const audio=new Audio();audio.preload='auto';audio.autoplay=false;audio.loop=false;audio.controls=false;audio.playsInline=true;audio.setAttribute('playsinline','');audio.setAttribute('webkit-playsinline','');audio.setAttribute('data-taskflow-sound',String(index));enforceVolume(audio);
   audio.addEventListener('ended',()=>advance(index));
-  audio.addEventListener('playing',()=>{if(index===current){prepareFollowingTrack(index);warmTransitionPool(index)}});
+  audio.addEventListener('playing',()=>{if(index===current){prepareFollowingTrack(index);hardWarmAllTracks()}});
   audio.addEventListener('timeupdate',()=>{
     if(index!==current||audio.paused||!Number.isFinite(audio.duration)||audio.duration<=0)return;
     const remaining=audio.duration-audio.currentTime;
-    if(remaining<=25)preloadNextTrack(index);
-    if(remaining<=12)void primeNextTrack(index);
-    if(remaining<=6)warmTransitionPool(index);
+    if(remaining<=45)preloadNextTrack(index);
+    if(remaining<=30)void primeNextTrack(index);
+    if(remaining<=18)hardWarmAllTracks();
     if(remaining<=BACKGROUND_HANDOFF_LEAD&&!onlyInApp&&document.hidden)void backgroundSeamlessHandoff(index);
   });
   audio.addEventListener('pause',()=>{if(canPlayNow()&&index===current&&!audio.ended)scheduleResume(500)});
@@ -320,7 +360,7 @@ function openPanel(){if(!panel)buildPanel();previousOverflow=document.body.style
 function closePanel(){if(!panel)return;panel.classList.remove('open');panel.setAttribute('aria-hidden','true');document.body.style.overflow=previousOverflow}
 function bindSearch(){document.addEventListener('taskflow:search-submit',event=>{const query=event&&event.detail&&event.detail.query;if(norm(query)!==CODE)return;openPanel()})}
 function bindRecovery(){
-  document.addEventListener('visibilitychange',()=>{if(onlyInApp&&document.hidden){stopSound();return}if(canPlayNow()){if(document.hidden)warmTransitionPool(current);scheduleResume(0)}},false);
+  document.addEventListener('visibilitychange',()=>{if(onlyInApp&&document.hidden){stopSound();return}if(canPlayNow()){hardWarmAllTracks();scheduleResume(0)}},false);
   const recover=()=>{if(canPlayNow())scheduleResume(0)};window.addEventListener('pageshow',recover,false);window.addEventListener('focus',recover,false);
   ['pointerdown','touchstart','click','keydown'].forEach(type=>document.addEventListener(type,()=>{if(canPlayNow()&&players[current]&&players[current].paused)startPlayback()},{capture:true,passive:true}));
   saveTimer=setInterval(()=>{if(audioReady)savePlayback()},5000);
