@@ -19,11 +19,11 @@ input,select,textarea{border-color:rgba(137,169,210,.16)!important;box-shadow:in
 input:focus,select:focus,textarea:focus{border-color:rgba(77,231,218,.52)!important;box-shadow:0 0 0 3px rgba(77,231,218,.07),inset 0 1px 0 rgba(255,255,255,.03)!important}
 
 /* Acabado premium sin alterar estructura ni medidas */
-:where(#tf503020Hub,#tfMentalistPairV117,.v83-core-card,.v69-routine-launch,.v94-mentalist-launch,.v48-analysis-panel,.tf-profile-card,.tf117-sheet,.tf119-sheet,.tf120-card,.tf1304-sheet,.tf13053-sheet,.window-content){box-shadow:0 18px 45px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.025)!important}
+:where(#tf503020Hub,#tfMentalistPairV117,.v83-core-card,.v69-routine-launch,.v94-mentalist-launch,.v48-analysis-panel,.tf117-sheet,.tf119-sheet,.tf120-card,.tf1304-sheet,.tf13053-sheet,.window-content){box-shadow:0 18px 45px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.025)!important}
 :where(#tf503020Hub,#tfMentalistPairV117,.v83-core-card,.v69-routine-launch,.v94-mentalist-launch){isolation:isolate;overflow:hidden}
 :where(#tf503020Hub,#tfMentalistPairV117,.v83-core-card,.v69-routine-launch,.v94-mentalist-launch):after{filter:saturate(1.12) contrast(1.04)}
-:where(.quick-action-btn,.tf-profile-action,.tf117-actions button,.tf119-actions button,.tf117-done,.tf119-done,.tf120-action,.tf120-delete){box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 9px 22px rgba(0,0,0,.16)!important}
-:where(.quick-action-btn,.tf-profile-action,.v83-core-card,.v69-routine-launch,#tf503020Hub,#tfMentalistPairV117) svg{filter:drop-shadow(0 0 5px currentColor);shape-rendering:geometricPrecision}
+:where(.quick-action-btn,.tf117-actions button,.tf119-actions button,.tf117-done,.tf119-done,.tf120-action,.tf120-delete){box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 9px 22px rgba(0,0,0,.16)!important}
+:where(.quick-action-btn,.v83-core-card,.v69-routine-launch,#tf503020Hub,#tfMentalistPairV117) svg{filter:drop-shadow(0 0 5px currentColor);shape-rendering:geometricPrecision}
 :where(.quick-action-icon,.v83-core-icon,.v69-routine-icon,.v94-mentalist-icon,.tf120-icon){box-shadow:inset 0 1px 0 rgba(255,255,255,.055),0 8px 20px rgba(0,0,0,.18)!important}
 :where(.window-close,.tf117-x,.tf119-x,.tf120-close,.tf1304-x,.tf13053-x){background:linear-gradient(145deg,rgba(27,38,62,.96),rgba(15,23,41,.98))!important;border-color:rgba(160,184,221,.16)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.045),0 8px 22px rgba(0,0,0,.19)!important}
 :where(.window-close,.tf117-x,.tf119-x,.tf120-close,.tf1304-x,.tf13053-x):active{background:linear-gradient(145deg,rgba(39,54,84,.98),rgba(18,29,51,.99))!important}
