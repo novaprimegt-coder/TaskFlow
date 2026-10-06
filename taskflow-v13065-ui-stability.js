@@ -3,13 +3,12 @@
 if(window.__tfV13065UiStability)return;
 window.__tfV13065UiStability=true;
 
-/* V130.6.5 · Solo tres ajustes solicitados:
+/* V130.6.7 · Conserva únicamente los dos ajustes del buscador:
    1) lupa del buscador al tamaño visual del botón X;
-   2) elimina por completo el botón de enviar, dejando únicamente X;
-   3) elimina parpadeos visuales durante la apertura de Mentalista. */
+   2) elimina por completo el botón de enviar, dejando únicamente X.
+   La intervención visual temporal de Mentalista fue retirada para evitar saltos/parpadeos. */
 
 const STYLE_ID='tfV13065UiStabilityStyle';
-let mentalTimer=0;
 
 function installStyle(){
   if(document.getElementById(STYLE_ID))return;
@@ -38,19 +37,6 @@ function installStyle(){
 .tf13053-search-btn.submit{display:none!important}
 #tfSearchActionsV13053{gap:0!important}
 
-html.tf13065-mental-opening #windowContainer,
-html.tf13065-mental-opening #windowContainer *{
-  animation:none!important;
-  transition:none!important;
-}
-html.tf13065-mental-opening #windowContainer.window-container.open{
-  opacity:1!important;
-  visibility:visible!important;
-}
-html.tf13065-mental-opening #windowContainer.window-container.open>#windowContent{
-  opacity:1!important;
-  visibility:visible!important;
-}
 @media(max-width:430px){
   .search-container>i.fa-search,
   .search-container .search-icon,
@@ -65,23 +51,10 @@ html.tf13065-mental-opening #windowContainer.window-container.open>#windowConten
 function removeSend(){
   document.querySelectorAll('.tf13053-search-btn.submit').forEach(btn=>btn.remove());
 }
-function beginMentalStableOpen(){
-  clearTimeout(mentalTimer);
-  document.documentElement.classList.add('tf13065-mental-opening');
-  mentalTimer=setTimeout(()=>document.documentElement.classList.remove('tf13065-mental-opening'),1400);
-}
 function bind(){
   installStyle();
   removeSend();
   [80,220,500,900,1500].forEach(ms=>setTimeout(removeSend,ms));
-  document.addEventListener('pointerdown',event=>{
-    const card=event.target&&event.target.closest?event.target.closest('#tfMentalistPairV117'):null;
-    if(card)beginMentalStableOpen();
-  },true);
-  document.addEventListener('click',event=>{
-    const card=event.target&&event.target.closest?event.target.closest('#tfMentalistPairV117'):null;
-    if(card)beginMentalStableOpen();
-  },true);
 }
 
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind,{once:true});else bind();
