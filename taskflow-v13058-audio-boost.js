@@ -117,7 +117,7 @@ function musicIsEnabled(){
   try{return localStorage.getItem('taskflow_sound_enabled_v1304')!=='0'}catch(_){return true}
 }
 function onlyInsideApp(){
-  try{return localStorage.getItem('taskflow_sound_only_in_app_v1305')==='1'}catch(_){return false}
+  try{const value=localStorage.getItem('taskflow_sound_only_in_app_v1305');return value===null?true:value==='1'}catch(_){return true}
 }
 function savedMusicIndex(){
   try{
