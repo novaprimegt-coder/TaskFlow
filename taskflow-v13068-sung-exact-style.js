@@ -3,7 +3,7 @@
 if(window.__tfV13068SungExactStyle)return;
 window.__tfV13068SungExactStyle=true;
 
-/* V130.6.8 · SOLO estilo visual de Sócrates y Maquiavelo.
+/* V130.7.5 · SOLO ajuste de tamaño visual de Sócrates y Maquiavelo.
    Referencia: Sung Jin-Woo. No modifica datos, progreso, frecuencia ni lógica. */
 const ID='tfV13068SungExactStyleCss';
 function install(){
@@ -40,12 +40,12 @@ function install(){
 #windowContent.tf13067-mind-legal-style .v69-routine-card{
   width:100%!important;max-width:none!important;margin-left:0!important;margin-right:0!important;box-sizing:border-box!important;
 }
-#windowContent.tf13067-mind-legal-style .v69-routine-list{gap:12px!important}
+#windowContent.tf13067-mind-legal-style .v69-routine-list{gap:8px!important}
 
 /* Tarjeta compacta: elimina el aspecto grande que no correspondía a Sung */
 #windowContent.tf13067-mind-legal-style .tf13067-mission{
   width:100%!important;max-width:none!important;min-width:0!important;
-  min-height:94px!important;height:auto!important;margin:0!important;padding:11px 13px!important;
+  min-height:72px!important;height:auto!important;margin:0!important;padding:8px 10px!important;
   display:grid!important;grid-template-columns:28px minmax(0,1fr) 26px!important;align-items:center!important;column-gap:10px!important;
   border:1px solid rgba(157,148,202,.13)!important;border-radius:17px!important;
   background:radial-gradient(circle at 7% 50%,rgba(113,96,169,.055),transparent 31%),linear-gradient(145deg,#23233d 0%,#202039 100%)!important;
@@ -124,7 +124,7 @@ function install(){
 
 @media(max-width:430px){
   #windowContent.tf13067-mind-legal-style .tf13067-mission{
-    min-height:92px!important;padding:10px 11px!important;
+    min-height:68px!important;padding:8px 9px!important;
     grid-template-columns:26px minmax(0,1fr) 24px!important;column-gap:9px!important;border-radius:16px!important;
   }
   #windowContent.tf13067-mind-legal-style .tf13067-task-icon{
