@@ -22,11 +22,15 @@ const TRACKS=[
   {id:'tai-long-suenos',src:'./audio/_%C2%A1%C2%BFNO%20FUE%20CULPA%20TUYA__%20%C2%BFQUI%C3%89N%20LLENO%20DE%20SUE%C3%91OS%20MI%20CABEZA__%F0%9F%92%94%20_%20EDIT%20TAI%20LONG%20_%20KAMIN%20_%20_shorts_edit(MP3).mp3',expectedSize:1884742}
 ];
 const PACK_SIGNATURE=AUDIO_PACK_REV+'||'+TRACKS.map(t=>t.id+'|'+t.src+'|'+t.expectedSize).join('||');
+/* V130.8.0 · Conserva una referencia al play disponible antes de las capas posteriores.
+   Se usa exclusivamente para preparar silenciosamente la siguiente pista. */
+const TRANSITION_PRIME_PLAY=HTMLMediaElement.prototype.play;
 
 let enabled=true,onlyInApp=true,current=0,players=[],resumeTimer=0,saveTimer=0;
 let previousOverflow='',panel=null,toggle=null,statusText=null,onlyToggle=null,onlyStateText=null;
 let objectUrls=new Array(TRACKS.length).fill(null);
 let audioReady=false,downloadRunning=false,downloadGate=null,downloadStatus=null,downloadBar=null,downloadRetry=null;
+let transitionPrimeBusy=new Set();
 
 function norm(value){return String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/\s+/g,' ').trim()}
 function readEnabled(){try{const value=localStorage.getItem(STORAGE_KEY);return value===null?true:value!=='0'}catch(_){return true}}
@@ -174,10 +178,74 @@ async function loadPlayersFromDb(db){
   await Promise.all(players.map(audio=>new Promise(resolve=>{if(audio.readyState>=3){resolve();return}const done=()=>resolve();audio.addEventListener('canplaythrough',done,{once:true});audio.addEventListener('canplay',done,{once:true});setTimeout(done,5000)})));
 }
 
+/* V130.8.0 · Preparación anticipada de la siguiente canción.
+   Evita que Android/WebView tenga que iniciar un decodificador "frío" justo
+   cuando la pista cambia con TaskFlow en segundo plano. */
+function nextTrackIndex(from){
+  if(!players.length)return 0;
+  return (Number(from)+1)%players.length;
+}
+function preloadNextTrack(from){
+  if(!players.length)return;
+  const next=players[nextTrackIndex(from)];
+  if(!next||!next.src)return;
+  try{
+    next.preload='auto';
+    if(next.readyState<3)next.load();
+  }catch(_){}
+}
+async function primeNextTrack(from){
+  if(!enabled||!players.length||(onlyInApp&&document.hidden))return;
+  const nextIndex=nextTrackIndex(from);
+  const audio=players[nextIndex];
+  if(!audio||!audio.src||transitionPrimeBusy.has(nextIndex)||audio.dataset.tf13080Primed==='1')return;
+  transitionPrimeBusy.add(nextIndex);
+  audio.dataset.tf13080SilentPrime='1';
+  const wasMuted=!!audio.muted;
+  let oldVolume=.70;
+  try{oldVolume=Number(audio.volume)}catch(_){}
+  try{
+    audio.preload='auto';
+    if(audio.readyState<2)audio.load();
+    audio.muted=true;
+    try{audio.volume=0}catch(_){}
+    const result=TRANSITION_PRIME_PLAY.call(audio);
+    if(result&&typeof result.then==='function')await result;
+    try{if(!audio.paused)audio.pause()}catch(_){}
+    try{audio.currentTime=0}catch(_){}
+    if(audio.readyState>=2)audio.dataset.tf13080Primed='1';
+  }catch(_){
+    try{audio.pause()}catch(__){}
+    try{audio.currentTime=0}catch(__){}
+  }finally{
+    try{audio.volume=Number.isFinite(oldVolume)?oldVolume:.70}catch(_){}
+    try{audio.muted=wasMuted}catch(_){}
+    delete audio.dataset.tf13080SilentPrime;
+    transitionPrimeBusy.delete(nextIndex);
+  }
+}
+function prepareFollowingTrack(from){
+  preloadNextTrack(from);
+  void primeNextTrack(from);
+}
+
 function scheduleResume(delay){if(!canPlayNow())return;clearTimeout(resumeTimer);resumeTimer=setTimeout(()=>{if(canPlayNow())ensurePlaying()},Math.max(0,delay||0))}
 async function playIndex(index){
-  if(!canPlayNow()||!players.length)return false;current=((index%players.length)+players.length)%players.length;const audio=players[current];enforceVolume(audio);
-  try{const p=audio.play();if(p&&typeof p.then==='function')await p;setPlaybackState('playing');return true}catch(_){scheduleResume(900);return false}
+  if(!canPlayNow()||!players.length)return false;
+  current=((index%players.length)+players.length)%players.length;
+  const audio=players[current];
+  delete audio.dataset.tf13080Primed;
+  enforceVolume(audio);
+  try{
+    const p=audio.play();
+    if(p&&typeof p.then==='function')await p;
+    setPlaybackState('playing');
+    prepareFollowingTrack(current);
+    return true;
+  }catch(_){
+    scheduleResume(900);
+    return false;
+  }
 }
 async function startPlayback(){if(!canPlayNow())return false;return playIndex(current)}
 async function advance(from){if(!canPlayNow()||from!==current)return;savePlayback();try{players[from].currentTime=0}catch(_){}current=(from+1)%players.length;try{localStorage.setItem(PLAYBACK_KEY,JSON.stringify({index:current,time:0,at:Date.now()}))}catch(_){}await playIndex(current)}
@@ -187,7 +255,17 @@ function setEnabled(value,persist=true){enabled=!!value;if(persist)writeEnabled(
 function setOnlyInApp(value,persist=true){onlyInApp=!!value;if(persist)writeOnlyInApp(onlyInApp);updatePanel();if(canPlayNow())startPlayback();else stopSound()}
 function createPlayer(index){
   const audio=new Audio();audio.preload='auto';audio.autoplay=false;audio.loop=false;audio.controls=false;audio.playsInline=true;audio.setAttribute('playsinline','');audio.setAttribute('webkit-playsinline','');audio.setAttribute('data-taskflow-sound',String(index));enforceVolume(audio);
-  audio.addEventListener('ended',()=>advance(index));audio.addEventListener('pause',()=>{if(canPlayNow()&&index===current&&!audio.ended)scheduleResume(500)});audio.addEventListener('volumechange',()=>{if(enabled)enforceVolume(audio)});return audio;
+  audio.addEventListener('ended',()=>advance(index));
+  audio.addEventListener('playing',()=>{if(index===current)prepareFollowingTrack(index)});
+  audio.addEventListener('timeupdate',()=>{
+    if(index!==current||audio.paused||!Number.isFinite(audio.duration)||audio.duration<=0)return;
+    const remaining=audio.duration-audio.currentTime;
+    if(remaining<=25)preloadNextTrack(index);
+    if(remaining<=8)void primeNextTrack(index);
+  });
+  audio.addEventListener('pause',()=>{if(canPlayNow()&&index===current&&!audio.ended)scheduleResume(500)});
+  audio.addEventListener('volumechange',()=>{if(enabled&&audio.dataset.tf13080SilentPrime!=='1')enforceVolume(audio)});
+  return audio;
 }
 function initAudio(){
   readPlayback();players=TRACKS.map((_,index)=>createPlayer(index));
