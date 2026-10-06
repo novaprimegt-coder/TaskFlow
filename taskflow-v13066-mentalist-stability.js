@@ -3,7 +3,7 @@
 if(window.__tfV13066MentalistStability)return;
 window.__tfV13066MentalistStability=true;
 
-/* V130.6.6 · Corrección localizada de rutinas.
+/* V130.6.7 · Corrección localizada de rutinas.
    SOLO corrige:
    - Mentalista: progreso/completado del panel y tarjeta principal.
    - Mentalista: desaparición no solicitada.
@@ -44,41 +44,25 @@ function installStyle(){
   const s=document.createElement('style');
   s.id=STYLE_ID;
   s.textContent=`
-/* Mantener legibles los iconos de misiones cuando una rutina está completada. */
+/* Estado completado: conservar el diseño nativo de cada rutina.
+   Solo impedimos que el icono existente sea ocultado al completar una misión. */
 #windowContainer .v96-mentalist-scroll .tf13066-completed-mission .tf13066-task-icon,
 #windowContainer .v97-routine-scroll .tf13066-completed-mission .tf13066-task-icon{
+  display:flex!important;
   opacity:1!important;
   visibility:visible!important;
-  color:#55e5db!important;
-  background:linear-gradient(145deg,rgba(22,62,77,.82),rgba(24,31,58,.94))!important;
-  border-color:rgba(76,226,215,.22)!important;
-  filter:none!important;
 }
 #windowContainer .v96-mentalist-scroll .tf13066-completed-mission .tf13066-task-icon svg,
 #windowContainer .v97-routine-scroll .tf13066-completed-mission .tf13066-task-icon svg,
 #windowContainer .v96-mentalist-scroll .tf13066-completed-mission .tf13066-task-icon i,
 #windowContainer .v97-routine-scroll .tf13066-completed-mission .tf13066-task-icon i{
+  display:block!important;
   opacity:1!important;
   visibility:visible!important;
-  color:#55e5db!important;
-  stroke:currentColor!important;
-  filter:drop-shadow(0 0 5px rgba(85,229,219,.22))!important;
 }
-/* Estado completado visible de Mentalista, sin rediseñar la tarjeta. */
-#${CARD_ID}.tf13066-complete .v94-mentalist-progress{color:#72f0df!important;border-color:rgba(83,231,215,.38)!important}
-#${CARD_ID}.tf13066-complete .v94-mentalist-copy::after{
-  content:'COMPLETA';
-  display:block;
-  margin-top:4px;
-  color:#69eadb;
-  font-size:7px;
-  font-weight:950;
-  letter-spacing:.12em;
-}
-#${CARD_ID}.tf13066-complete .v94-mentalist-bar{opacity:1!important}
-/* Durante el toque que abre Mentalista, conservar exactamente el aspecto de su tarjeta clonada. */
-#${CARD_ID}.tf13066-launch-armed{transform:none!important}
-`;
+/* Mentalista conserva el estilo original: sin etiqueta, color ni borde artificial. */
+#${CARD_ID}.tf13066-complete .v94-mentalist-copy::after{content:none!important;display:none!important}
+#${CARD_ID}.tf13066-launch-armed{transform:none!important}`;
   document.head.appendChild(s);
 }
 
