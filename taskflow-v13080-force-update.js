@@ -3,12 +3,12 @@
 if(window.__tfV13080ForceUpdate)return;
 window.__tfV13080ForceUpdate=true;
 
-/* V130.8.0 · Aviso forzoso de actualización.
+/* V130.8.3 · Aviso forzoso de actualización.
    SOLO añade el bloqueo de actualización obligatoria por versión.
    No modifica rutinas, audio, búsqueda, perfil, progreso ni sincronización. */
 
-const RELEASE_ID='13080-20261006';
-const RELEASE_LABEL='TaskFlow V130.8.0';
+const RELEASE_ID='13083-20261006';
+const RELEASE_LABEL='TaskFlow V130.8.3';
 const DOWNLOAD_URL='https://github.com/novaprimegt-coder/Apk/releases/download/stable/TaskFlow.apk';
 const ACK_KEY='taskflow_required_update_ack_v1';
 const PENDING_KEY='taskflow_required_update_pending_v1';
