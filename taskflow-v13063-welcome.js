@@ -2,13 +2,13 @@
 'use strict';
 if(window.__tfV13063Welcome)return;window.__tfV13063Welcome=true;
 
-/* V130.6.3 · Bienvenida de una sola vez.
+/* V130.8.3 · Bienvenida reactivada una sola vez para la nueva versión.
    - Explica únicamente los comandos SONIDO y MEJORAR.
    - El botón aparece después de 10 segundos.
    - Una vez confirmada, no reaparece al salir/entrar de la app.
    - Vuelve a habilitarse únicamente después de un reinicio de sistema exitoso. */
 
-const SEEN_KEY='taskflow_welcome_seen_v13063';
+const SEEN_KEY='taskflow_welcome_seen_v13083_release';
 const OVERLAY_ID='tfWelcomeV13063';
 const WAIT_SECONDS=10;
 let timer=0,shown=false,resetWatch=null;
