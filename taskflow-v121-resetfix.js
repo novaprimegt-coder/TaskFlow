@@ -85,9 +85,11 @@ function gtClock(){
 function keyName(value){
  return String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9]+/g,'');
 }
-function userCollectionKey(key){
+function userCollectionKey(key,value){
  const n=keyName(key);
- return /^(TASKS?|TAREAS?|HABITS?|HABITOS?|AVITOS?)$/.test(n);
+ if(/^(TASKS?|TAREAS?|HABITS?|HABITOS?|AVITOS?|ACTIVETASKS?|TASKSACTIVAS?|TAREASACTIVAS?|ACTIVEHABITS?|HABITOSACTIVOS?|AVITOSACTIVOS?)$/.test(n))return true;
+ if(Array.isArray(value)&&/(TASK|TAREA|HABIT|HABITO|AVITO)/.test(n)&&!/(STREAK|RACHA|COUNT|TOTAL|SCORE|XP|LEVEL|NIVEL|RANK|RANGO)/.test(n))return true;
+ return false;
 }
 function completionKey(key){
  const n=keyName(key);
@@ -119,13 +121,45 @@ function resetUserCreated(value,key){
  }
  return value;
 }
+function mergeUnique(active,completed){
+ const out=[];const seen=new Set();
+ for(const item of [...active,...completed]){
+  const clean=resetUserCreated(item,'');
+  let id='';
+  if(clean&&typeof clean==='object'&&!Array.isArray(clean))id=String(clean.id??clean.uid??clean.uuid??clean.key??'');
+  const signature=id?'id:'+id:'json:'+JSON.stringify(clean);
+  if(seen.has(signature))continue;
+  seen.add(signature);out.push(clean);
+ }
+ return out;
+}
+function foldCompletedCollections(obj){
+ const keys=Object.keys(obj);
+ const groups=[
+  {item:/(TASK|TAREA)/,done:/(COMPLETED|COMPLETAD|DONE|FINISHED|FINALIZAD)/,active:/(^TASKS?$|^TAREAS?$|ACTIVE|ACTIVAS?)/},
+  {item:/(HABIT|HABITO|AVITO)/,done:/(COMPLETED|COMPLETAD|DONE|FINISHED|FINALIZAD)/,active:/(^HABITS?$|^HABITOS?$|^AVITOS?$|ACTIVE|ACTIVOS?)/}
+ ];
+ for(const g of groups){
+  const doneKey=keys.find(k=>Array.isArray(obj[k])&&g.item.test(keyName(k))&&g.done.test(keyName(k)));
+  if(!doneKey)continue;
+  const activeKey=keys.find(k=>k!==doneKey&&Array.isArray(obj[k])&&g.item.test(keyName(k))&&g.active.test(keyName(k))&&!g.done.test(keyName(k)));
+  if(activeKey){
+   obj[activeKey]=mergeUnique(obj[activeKey],obj[doneKey]);
+   obj[doneKey]=[];
+  }else{
+   obj[doneKey]=obj[doneKey].map(v=>resetUserCreated(v,''));
+  }
+ }
+ return obj;
+}
 function resetTree(value,key){
- if(userCollectionKey(key))return resetUserCreated(value,key);
+ if(userCollectionKey(key,value))return resetUserCreated(value,key);
  if(progressKey(key))return zeroValue(value);
  if(Array.isArray(value))return value.map(v=>v&&typeof v==='object'?resetTree(v,''):v);
  if(value&&typeof value==='object'){
+  const source=foldCompletedCollections({...value});
   const out={};
-  for(const k of Object.keys(value))out[k]=resetTree(value[k],k);
+  for(const k of Object.keys(source))out[k]=resetTree(source[k],k);
   return out;
  }
  return value;
@@ -148,11 +182,12 @@ function resetAuxProgress(){
  const progress=/progress|streak|racha|xp|experience|experiencia|points?|puntos?|level|nivel|rank|rango|score|puntaje|success|exito|fail|falla|penalty|castigo|perfect|completed|complete|completad|done|finished|finalizad|history|historial|discipline|disciplina|good.*day|bad.*day|dia.*buen|dia.*mal|token|coin|moneda|saldo|saving|ahorro|mission|mision/i;
  const keys=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k)keys.push(k)}
  for(const k of keys){
-  if(!k.startsWith('taskflow_')||k===MAIN||k===BACK||k===REC||k===TOUCH)return;
- }
- for(const k of keys){
   if(!k||!k.startsWith('taskflow_')||k===MAIN||k===BACK||k===REC||k===TOUCH)continue;
-  if(preserve.test(k)||personal.test(k)||k.startsWith(APPLIED_PREFIX)||k===MENTAL_USER)continue;
+  if(preserve.test(k)||k.startsWith(APPLIED_PREFIX)||k===MENTAL_USER)continue;
+  if(personal.test(k)){
+   /* Nunca se elimina una definición personal por nombre de clave. Su estado se reinicia dentro de MAIN/BACK/REC. */
+   continue;
+  }
   if(progress.test(k)){try{localStorage.removeItem(k)}catch(_){}}
  }
 }
