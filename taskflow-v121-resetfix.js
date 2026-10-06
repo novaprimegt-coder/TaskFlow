@@ -7,6 +7,12 @@ const BACK='taskflow_db_v26_backup';
 const REC='taskflow_db_v26_recovery';
 const TOUCH='taskflow_cloud_local_touch_v1';
 const APPLIED_PREFIX='taskflow_global_reset_applied_v121_';
+const CFG='taskflow_routines_v115';
+const CFG_META='taskflow_routines_v115_meta';
+const MENTAL_USER='taskflow_v13041_mentalista_user_choice';
+const MENTAL_GUARD='taskflow_v13066_mentalista_enabled_guard';
+const MENTAL_PROGRESS='taskflow_v13066_mentalist_progress';
+const ROUTINE_KEYS=['sung','juridico','socrates','maquiavelo','mentalista','budget503020'];
 const PROJECT='taskflow-b0ece';
 const API='https://firestore.googleapis.com/v1/projects/'+PROJECT+'/databases/(default)/documents';
 let busy=false,pollTimer=0,checking=false;
@@ -50,6 +56,20 @@ async function writeMarker(uid,stamp){
  return resetDoc(uid,'PATCH',{name,fields:{resetAt:{integerValue:String(stamp)},version:{integerValue:'121'}}});
 }
 
+async function writeRoutineConfig(uid,stamp){
+ let t=await token(false);if(!t)throw new Error('AUTH_REQUIRED');
+ const url=API+'/users/'+encodeURIComponent(uid)+'/settings/routinesV115';
+ const config={};for(const k of ROUTINE_KEYS)config[k]=false;
+ const name='projects/'+PROJECT+'/databases/(default)/documents/users/'+uid+'/settings/routinesV115';
+ const body={name,fields:{config:{stringValue:JSON.stringify(config)},updatedAt:{integerValue:String(stamp)}}};
+ const opt={method:'PATCH',headers:{'Authorization':'Bearer '+t,'Content-Type':'application/json'},body:JSON.stringify(body)};
+ let r=await fetch(url,opt);
+ if(r.status===401){t=await token(true);if(t){opt.headers.Authorization='Bearer '+t;r=await fetch(url,opt)}}
+ const d=await r.json().catch(()=>({}));
+ if(!r.ok)throw new Error(d&&d.error&&d.error.message||('HTTP '+r.status));
+ return true;
+}
+
 function gtClock(){
  const p={};
  new Intl.DateTimeFormat('en-CA',{timeZone:'America/Guatemala',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',hourCycle:'h23'}).formatToParts(new Date()).forEach(x=>{if(x.type!=='literal')p[x.type]=x.value});
@@ -62,13 +82,87 @@ function gtClock(){
  return{todayDMY,iso,cycleKey:iso+'-GT-01'};
 }
 
-function resetLocal(){
+function keyName(value){
+ return String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9]+/g,'');
+}
+function userCollectionKey(key){
+ const n=keyName(key);
+ return /^(TASKS?|TAREAS?|HABITS?|HABITOS?|AVITOS?)$/.test(n);
+}
+function completionKey(key){
+ const n=keyName(key);
+ return /(COMPLETED|COMPLETE|COMPLETAD|DONE|FINISHED|FINALIZAD|CHECKED|ISCHECKED|ISDONE|ISCOMPLETE|COMPLETION|LASTCOMPLET|LASTDONE|LASTFINISH)/.test(n);
+}
+function progressKey(key){
+ const n=keyName(key);
+ if(!n)return false;
+ return /(XP|EXPERIENCE|EXPERIENCIA|POINTS?|PUNTOS?|LEVEL|NIVEL|RANK|RANGO|STREAK|RACHA|PROGRESS|PROGRESO|SCORE|PUNTAJE|CONSECUTIVE|CONSECUTIVO|SUCCESS|EXITO|FAIL|FAILURE|FALLA|PENALTY|PENALIZACION|PUNISH|CASTIGO|PERFECT|COMPLETED|COMPLETE|COMPLETAD|DONE|FINISHED|FINALIZAD|CLAIMED|REDEEMED|HISTORY|HISTORIAL|DISCIPLINE|DISCIPLINA|GOOD.*DAY|BAD.*DAY|DAY.*GOOD|DAY.*BAD|DIA.*BUEN|DIA.*MAL|TOKEN|COIN|MONEDA|CURRENCY|BALANCE|SALDO|SAVING|AHORRO)/.test(n);
+}
+function zeroValue(value){
+ if(typeof value==='number')return 0;
+ if(typeof value==='boolean')return false;
+ if(typeof value==='string')return /^-?\d+(?:\.\d+)?$/.test(value.trim())?'0':'';
+ if(Array.isArray(value))return [];
+ if(value&&typeof value==='object')return {};
+ return null;
+}
+function resetUserCreated(value,key){
+ if(completionKey(key))return zeroValue(value);
+ if(Array.isArray(value))return value.map(v=>v&&typeof v==='object'?resetUserCreated(v,''):v);
+ if(value&&typeof value==='object'){
+  const out={};
+  for(const k of Object.keys(value)){
+   if(completionKey(k)||/(STREAK|RACHA|PROGRESS|PROGRESO|SCORE|PUNTAJE)/.test(keyName(k)))out[k]=zeroValue(value[k]);
+   else out[k]=resetUserCreated(value[k],k);
+  }
+  return out;
+ }
+ return value;
+}
+function resetTree(value,key){
+ if(userCollectionKey(key))return resetUserCreated(value,key);
+ if(progressKey(key))return zeroValue(value);
+ if(Array.isArray(value))return value.map(v=>v&&typeof v==='object'?resetTree(v,''):v);
+ if(value&&typeof value==='object'){
+  const out={};
+  for(const k of Object.keys(value))out[k]=resetTree(value[k],k);
+  return out;
+ }
+ return value;
+}
+function resetRoutineState(stamp){
+ const config={};for(const k of ROUTINE_KEYS)config[k]=false;
+ try{
+  localStorage.setItem(CFG,JSON.stringify(config));
+  localStorage.setItem(CFG_META,String(stamp));
+  localStorage.setItem(MENTAL_USER,'off');
+  localStorage.removeItem(MENTAL_GUARD);
+  localStorage.removeItem(MENTAL_PROGRESS);
+ }catch(_){}
+ try{window.TaskFlowV117&&window.TaskFlowV117.refresh&&window.TaskFlowV117.refresh()}catch(_){}
+ try{window.TaskFlowV119&&window.TaskFlowV119.refresh&&window.TaskFlowV119.refresh()}catch(_){}
+}
+function resetAuxProgress(){
+ const preserve=/sound|audio|music|firebase|auth|profile|cloud_bound|cloud_sync_meta|routines_v115|routines_v115_meta/i;
+ const personal=/task|tarea|habit|habito|avito/i;
+ const progress=/progress|streak|racha|xp|experience|experiencia|points?|puntos?|level|nivel|rank|rango|score|puntaje|success|exito|fail|falla|penalty|castigo|perfect|completed|complete|completad|done|finished|finalizad|history|historial|discipline|disciplina|good.*day|bad.*day|dia.*buen|dia.*mal|token|coin|moneda|saldo|saving|ahorro|mission|mision/i;
+ const keys=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k)keys.push(k)}
+ for(const k of keys){
+  if(!k.startsWith('taskflow_')||k===MAIN||k===BACK||k===REC||k===TOUCH)return;
+ }
+ for(const k of keys){
+  if(!k||!k.startsWith('taskflow_')||k===MAIN||k===BACK||k===REC||k===TOUCH)continue;
+  if(preserve.test(k)||personal.test(k)||k.startsWith(APPLIED_PREFIX)||k===MENTAL_USER)continue;
+  if(progress.test(k)){try{localStorage.removeItem(k)}catch(_){}}
+ }
+}
+function resetLocal(stamp){
  const arr=[MAIN,REC,BACK].map(key=>{
   try{const raw=localStorage.getItem(key),data=raw?JSON.parse(raw):null;return data&&typeof data==='object'&&!Array.isArray(data)?{data,savedAt:Number(data.savedAt)||0}:null}catch(_){return null}
  }).filter(Boolean);
  if(!arr.length)throw new Error('NO_STATE');
  arr.sort((a,b)=>b.savedAt-a.savedAt);
- const data=arr[0].data;
+ const data=resetTree(arr[0].data,'');
  if(!data.meta||typeof data.meta!=='object'||Array.isArray(data.meta))data.meta={};
  const m=data.meta,g=gtClock();
  m.habitStreakCurrent=0;
@@ -89,13 +183,16 @@ function resetLocal(){
  m.lastHabitCycleKey=g.cycleKey;
  m.lastTaskProcessingDate=g.todayDMY;
  m.v32ShopPerfectProcessed=g.iso;
- data.savedAt=Date.now();
+ const applied=Math.max(Date.now(),Number(stamp)||0);
+ data.savedAt=applied;
  const raw=JSON.stringify(data);
  localStorage.setItem(MAIN,raw);
  localStorage.setItem(BACK,raw);
  localStorage.setItem(REC,raw);
- localStorage.setItem(TOUCH,String(data.savedAt));
- return data.savedAt;
+ localStorage.setItem(TOUCH,String(applied));
+ resetAuxProgress();
+ resetRoutineState(applied);
+ return applied;
 }
 
 async function waitCloud(uid){
@@ -130,15 +227,16 @@ async function performReset(e){
   const u=user();
   if(!u||!u.uid){
    status('Reiniciando este dispositivo…');
-   resetLocal();
-   status('Dispositivo reiniciado a 0 días.','ok');
+   resetLocal(Date.now());
+   status('Dispositivo reiniciado: progreso, XP y estados completados volvieron a cero.','ok');
    setTimeout(()=>location.reload(),650);
    return;
   }
   status('Reiniciando la cuenta en todos tus dispositivos…');
-  resetLocal();
-  await syncAccount(u.uid);
   const stamp=Date.now();
+  resetLocal(stamp);
+  await syncAccount(u.uid);
+  await writeRoutineConfig(u.uid,stamp);
   await writeMarker(u.uid,stamp);
   localStorage.setItem(APPLIED_PREFIX+u.uid,String(stamp));
   status('Cuenta reiniciada. El cambio se aplicará automáticamente en los demás dispositivos.','ok');
@@ -167,9 +265,10 @@ async function applyRemote(uid,stamp){
   // Primero reconcilia la cuenta para conservar las tareas/hábitos más recientes.
   try{await syncAccount(uid)}catch(_){}
   // Después elimina únicamente progreso, rachas y fallas en este dispositivo.
-  resetLocal();
+  resetLocal(stamp);
   // Publica el mismo estado limpio para impedir que una copia antigua vuelva a imponerse.
   try{await syncAccount(uid)}catch(_){}
+  try{await writeRoutineConfig(uid,stamp)}catch(_){}
   setTimeout(()=>location.reload(),450);
   return true;
  }catch(err){
