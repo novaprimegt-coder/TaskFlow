@@ -9,7 +9,7 @@ window.__tfV13087ForceUpdate=true;
 
 const RELEASE_ID='taskflow-apk-v6-9.8-20261006-native';
 const RELEASE_LABEL='TaskFlow 9.8';
-const DOWNLOAD_URL='https://novaprimegt-coder.github.io/Apk/TaskFlow-download.html?v=9.8-build6';
+const DOWNLOAD_URL='https://novaprimegt-coder.github.io/Apk/TaskFlow-9.8-build6.html';
 const ACK_KEY='taskflow_required_update_native_ack_v1';
 const STYLE_ID='tfV13087ForceUpdateStyle';
 const MODAL_ID='tfV13087ForceUpdate';
