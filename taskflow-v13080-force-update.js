@@ -3,42 +3,26 @@
 if(window.__tfV13080ForceUpdate)return;
 window.__tfV13080ForceUpdate=true;
 
-/* V130.8.5 · Actualización obligatoria verificada por reinicio nativo.
+/* V130.8.6 · Actualización obligatoria sin falsos positivos.
    SOLO corrige el flujo de actualización forzosa.
-   Una descarga iniciada o cancelada NUNCA se considera actualización instalada. */
+   Descargar, cancelar, cerrar o reabrir TaskFlow NUNCA desbloquea el sistema automáticamente. */
 
 const RELEASE_ID='taskflow-9.8-v6-20261006';
 const RELEASE_LABEL='TaskFlow 9.8';
 const DOWNLOAD_URL='https://novaprimegt-coder.github.io/Apk/TaskFlow-download.html';
-const ACK_KEY='taskflow_required_update_ack_v3';
-const FLOW_KEY='taskflow_required_update_flow_v3';
-const SESSION_KEY='taskflow_required_update_session_v3';
+const ACK_KEY='taskflow_required_update_ack_v4';
+const FLOW_KEY='taskflow_required_update_flow_v4';
 const STYLE_ID='tfV13080ForceUpdateStyle';
 const MODAL_ID='tfV13080ForceUpdate';
+let confirmArmed=false;
 
 function get(key){try{return localStorage.getItem(key)||''}catch(_){return ''}}
 function set(key,value){try{localStorage.setItem(key,String(value));return true}catch(_){return false}}
 function del(key){try{localStorage.removeItem(key)}catch(_){}}
 function json(key){try{const x=JSON.parse(get(key)||'null');return x&&typeof x==='object'?x:null}catch(_){return null}}
 function installedAcknowledged(){return get(ACK_KEY)===RELEASE_ID}
-function sessionId(){
-  try{
-    let id=sessionStorage.getItem(SESSION_KEY)||'';
-    if(!id){id=Date.now().toString(36)+'-'+Math.random().toString(36).slice(2);sessionStorage.setItem(SESSION_KEY,id)}
-    return id;
-  }catch(_){return 'session-'+Date.now()}
-}
-const SESSION_ID=sessionId();
 function readFlow(){const x=json(FLOW_KEY);return x&&x.release===RELEASE_ID?x:null}
 function writeFlow(extra){const old=readFlow()||{};set(FLOW_KEY,JSON.stringify(Object.assign({},old,extra,{release:RELEASE_ID})))}
-function nativeRestartPassed(){
-  const flow=readFlow();
-  if(!flow||!flow.startedAt||!flow.session||flow.session===SESSION_ID)return false;
-  if(navigator.onLine===false)return false;
-  set(ACK_KEY,RELEASE_ID);
-  del(FLOW_KEY);
-  return true;
-}
 
 function installStyle(){
   if(document.getElementById(STYLE_ID))return;
@@ -91,35 +75,40 @@ function finishAcknowledgement(){
 }
 
 function build(){
-  if(document.getElementById(MODAL_ID)||installedAcknowledged()||nativeRestartPassed())return;
+  if(document.getElementById(MODAL_ID)||installedAcknowledged())return;
   installStyle();lockPage();
   const root=document.createElement('div');
   root.id=MODAL_ID;root.setAttribute('role','dialog');root.setAttribute('aria-modal','true');root.setAttribute('aria-labelledby','tf13080Title');
-  root.innerHTML=`<section class="tf13080-card"><div class="tf13080-head"><div class="tf13080-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></svg></div><div class="tf13080-kicker">Actualización obligatoria</div><h2 id="tf13080Title">Hay una nueva actualización</h2><div class="tf13080-version">${RELEASE_LABEL}</div><p class="tf13080-copy">Descarga e instala la versión más reciente de TaskFlow para continuar usando el sistema.</p></div><div class="tf13080-required">Cancelar la descarga o volver a TaskFlow no completa la actualización. El acceso seguirá bloqueado.</div><div class="tf13080-actions"><a class="tf13080-download" id="tf13080Download" href="${DOWNLOAD_URL}" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></svg><span>Descargar actualización</span></a><div class="tf13080-status" id="tf13080Status"></div></div></section>`;
+  root.innerHTML=`<section class="tf13080-card"><div class="tf13080-head"><div class="tf13080-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></svg></div><div class="tf13080-kicker">Actualización obligatoria</div><h2 id="tf13080Title">Hay una nueva actualización</h2><div class="tf13080-version">${RELEASE_LABEL}</div><p class="tf13080-copy">Descarga e instala la versión más reciente de TaskFlow para continuar usando el sistema.</p></div><div class="tf13080-required">Cancelar la descarga o volver a TaskFlow no completa la actualización. El acceso seguirá bloqueado.</div><div class="tf13080-actions"><a class="tf13080-download" id="tf13080Download" href="${DOWNLOAD_URL}" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></svg><span>Descargar actualización</span></a><div class="tf13080-status" id="tf13080Status"></div><button class="tf13080-installed" id="tf13080Installed" type="button">Ya instalé TaskFlow 9.8</button></div></section>`;
   document.body.appendChild(root);
 
   const btn=document.getElementById('tf13080Download');
+  const installed=document.getElementById('tf13080Installed');
+  const oldFlow=readFlow();if(oldFlow&&oldFlow.startedAt)showReturnControls();
 
   btn&&btn.addEventListener('click',()=>{
-    writeFlow({startedAt:Date.now(),session:SESSION_ID,leftAt:0,returnedAt:0});
+    writeFlow({startedAt:Date.now(),leftAt:0,returnedAt:0});
     const status=document.getElementById('tf13080Status');
     if(status){status.textContent='Descarga iniciada. TaskFlow se cerrará y seguirá bloqueado hasta que Android valide la actualización.';status.classList.add('show')}
-    setTimeout(()=>{
-      try{
-        if(/Vinebre/i.test(navigator.userAgent||''))location.href='http://action_exit';
-        else window.close();
-      }catch(_){}
-    },800);
   },{capture:true});
+
+  installed&&installed.addEventListener('click',()=>{
+    const flow=readFlow();if(!flow||!flow.startedAt)return;
+    if(!confirmArmed){
+      confirmArmed=true;
+      installed.classList.add('armed');
+      installed.textContent='Confirmar: Android terminó la instalación';
+      const status=document.getElementById('tf13080Status');
+      if(status){status.textContent='Confirma únicamente si Android mostró que TaskFlow 9.8 fue instalada correctamente.';status.classList.add('show')}
+      return;
+    }
+    finishAcknowledgement();
+  });
 
   document.addEventListener('visibilitychange',()=>{
     const flow=readFlow();if(!flow||!flow.startedAt)return;
     if(document.hidden)writeFlow({leftAt:Date.now()});
-    else {
-      writeFlow({returnedAt:Date.now()});
-      const status=document.getElementById('tf13080Status');
-      if(status){status.textContent='La actualización sigue pendiente. Cancelar la descarga no habilita el acceso.';status.classList.add('show')}
-    }
+    else {writeFlow({returnedAt:Date.now()});showReturnControls()}
   },true);
 
   document.addEventListener('keydown',e=>{
@@ -133,7 +122,9 @@ function boot(){
   del('taskflow_required_update_pending_v2');
   del('taskflow_required_update_ack_v2');
   del('taskflow_required_update_flow_v2');
-  if(installedAcknowledged()||nativeRestartPassed())return;
+  del('taskflow_required_update_ack_v3');
+  del('taskflow_required_update_flow_v3');
+  if(installedAcknowledged())return;
   if(document.body)build();else document.addEventListener('DOMContentLoaded',build,{once:true});
 }
 boot();
