@@ -3,15 +3,15 @@
 if(window.__tfV13080ForceUpdate)return;
 window.__tfV13080ForceUpdate=true;
 
-/* V130.8.3 · Aviso forzoso de actualización.
+/* V130.8.4 · Aviso forzoso de actualización.
    SOLO añade el bloqueo de actualización obligatoria por versión.
    No modifica rutinas, audio, búsqueda, perfil, progreso ni sincronización. */
 
-const RELEASE_ID='13083-20261006';
-const RELEASE_LABEL='TaskFlow V130.8.3';
-const DOWNLOAD_URL='https://github.com/novaprimegt-coder/Apk/releases/download/stable/TaskFlow.apk';
-const ACK_KEY='taskflow_required_update_ack_v1';
-const PENDING_KEY='taskflow_required_update_pending_v1';
+const RELEASE_ID='taskflow-9.8-v6-20261006';
+const RELEASE_LABEL='TaskFlow 9.8';
+const DOWNLOAD_URL='https://novaprimegt-coder.github.io/Apk/TaskFlow-download.html';
+const ACK_KEY='taskflow_required_update_ack_v2';
+const PENDING_KEY='taskflow_required_update_pending_v2';
 const STYLE_ID='tfV13080ForceUpdateStyle';
 const MODAL_ID='tfV13080ForceUpdate';
 
@@ -103,6 +103,13 @@ function build(){
     btn.setAttribute('aria-disabled','true');
     const span=btn.querySelector('span');if(span)span.textContent='Descarga iniciada…';
     status&&status.classList.add('show');
+    if(status)status.textContent='Descarga iniciada. TaskFlow se cerrará para impedir continuar con la versión anterior.';
+    setTimeout(()=>{
+      try{
+        if(/Vinebre/i.test(navigator.userAgent||''))location.href='http://action_exit';
+        else window.close();
+      }catch(_){}
+    },650);
   },{capture:true});
 
   document.addEventListener('keydown',e=>{
@@ -111,6 +118,8 @@ function build(){
 }
 
 function boot(){
+  del('taskflow_required_update_ack_v1');
+  del('taskflow_required_update_pending_v1');
   if(resolvePreviousDownload())return;
   if(document.body)build();else document.addEventListener('DOMContentLoaded',build,{once:true});
 }
