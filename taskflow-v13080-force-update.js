@@ -1,18 +1,18 @@
 (function(){
 'use strict';
-if(window.__tfV13087ForceUpdate)return;
-window.__tfV13087ForceUpdate=true;
+if(window.__tfV13089ForceUpdate)return;
+window.__tfV13089ForceUpdate=true;
 
-/* V130.8.7 · Actualización obligatoria validada por capacidades nativas.
+/* V130.8.9 · Actualización obligatoria validada por huella nativa reforzada.
    SOLO modifica el bloqueo/notificación de actualización.
    Cancelar una descarga, volver a la app o conservar localStorage NO desbloquea TaskFlow. */
 
-const RELEASE_ID='taskflow-apk-v6-9.8-20261006-native';
+const RELEASE_ID='taskflow-apk-v6-9.8-20261006-native-r2';
 const RELEASE_LABEL='TaskFlow 9.8';
-const DOWNLOAD_URL='https://novaprimegt-coder.github.io/Apk/TaskFlow-9.8-build6.html';
-const ACK_KEY='taskflow_required_update_native_ack_v1';
-const STYLE_ID='tfV13087ForceUpdateStyle';
-const MODAL_ID='tfV13087ForceUpdate';
+const DOWNLOAD_URL='https://novaprimegt-coder.github.io/Apk/TaskFlow-9.8-build6-r2.html';
+const ACK_KEY='taskflow_required_update_native_ack_v2';
+const STYLE_ID='tfV13089ForceUpdateStyle';
+const MODAL_ID='tfV13089ForceUpdate';
 let checkTimer=0;
 
 function get(k){try{return localStorage.getItem(k)||''}catch(_){return ''}}
@@ -29,8 +29,14 @@ function hasRequiredNativeBuild(){
     const share=window.AC24_INTERNAL_SHARE_BRIDGE_2026;
     const print=window.AC24_INTERNAL_PRINT_BRIDGE_2026;
     const blob=window.AC24BlobDataDownload;
-    return hasFn(share,'startShare')&&hasFn(share,'finishShare')&&
-      hasFn(print,'print')&&hasFn(print,'printPopup')&&hasFn(blob,'save');
+    const shareFns=['startShare','finishShare','cancelShare','startFile','fileChunk','finishFile'];
+    const fullShare=shareFns.every(name=>hasFn(share,name));
+    const printReady=hasFn(print,'print')&&hasFn(print,'printPopup');
+    const blobReady=hasFn(blob,'save');
+    const injectedShare=window.__AC24_INTERNAL_SHARE_INSTALLED_2026===true;
+    const injectedPrint=window.__AC24_INTERNAL_PRINT_INSTALLED_2026===true;
+    const webShareReady=typeof navigator.share==='function'&&typeof navigator.canShare==='function';
+    return fullShare&&printReady&&blobReady&&injectedShare&&injectedPrint&&webShareReady;
   }catch(_){return false}
 }
 function installedAcknowledged(){
@@ -103,7 +109,7 @@ function build(){
   checkTimer=setInterval(recheck,1500);
 }
 function boot(){
-  ['taskflow_required_update_ack_v1','taskflow_required_update_ack_v2','taskflow_required_update_ack_v3','taskflow_required_update_ack_v4',
+  ['taskflow_required_update_ack_v1','taskflow_required_update_ack_v3','taskflow_required_update_ack_v4',
    'taskflow_required_update_flow_v2','taskflow_required_update_flow_v3','taskflow_required_update_flow_v4',
    'taskflow_required_update_pending_v1','taskflow_required_update_pending_v2'].forEach(del);
   if(!isAppShell())return;
